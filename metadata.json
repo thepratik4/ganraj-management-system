@@ -1,0 +1,6 @@
+{
+  "name": "Ganraj Mitra Mandal - Vargani Management System",
+  "description": "Mobile-first finance and receipt management system for Ganeshotsav donations (vargani) and expenses.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
