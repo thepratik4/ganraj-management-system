@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import {
   Donation,
   Expense,
@@ -7,6 +7,7 @@ import {
   FinancialSummary,
 } from './types';
 import { StorageService } from './utils/storage';
+import { DatabaseService } from './services/db';
 import { Header } from './components/Header';
 import { BottomNav, ActiveTab } from './components/BottomNav';
 import { Dashboard } from './components/Dashboard';
@@ -18,12 +19,15 @@ import { ReportsView } from './components/ReportsView';
 import { SettingsView } from './components/SettingsView';
 import { ConfirmationModal } from './components/ConfirmationModal';
 import { BillImageModal } from './components/BillImageModal';
+import { AppLockModal } from './components/AppLockModal';
 
 export default function App() {
+  const [isAppUnlocked, setIsAppUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState<ActiveTab>('dashboard');
   const [donations, setDonations] = useState<Donation[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
   const [settings, setSettings] = useState<MandalSettings>(StorageService.getSettings());
+  const [isLoading, setIsLoading] = useState(true);
 
   // Modals state
   const [isDonationModalOpen, setIsDonationModalOpen] = useState(false);
@@ -37,6 +41,8 @@ export default function App() {
 
   const [isBillModalOpen, setIsBillModalOpen] = useState(false);
   const [activeBillUrl, setActiveBillUrl] = useState<string | null>(null);
+
+  const [isSupabaseModalOpen, setIsSupabaseModalOpen] = useState(false);
 
   // Confirmation Modal state
   const [confirmModal, setConfirmModal] = useState<{
@@ -52,14 +58,50 @@ export default function App() {
     onConfirm: () => {},
   });
 
-  // Initial load
-  useEffect(() => {
-    setDonations(StorageService.getDonations());
-    setExpenses(StorageService.getExpenses());
-    setSettings(StorageService.getSettings());
-    // Ensure clean light mode
-    document.documentElement.classList.remove('dark');
+  // Central load function
+  const loadAllData = useCallback(async () => {
+    try {
+      const [fetchedDonations, fetchedExpenses, fetchedSettings] = await Promise.all([
+        DatabaseService.getDonations(),
+        DatabaseService.getExpenses(),
+        DatabaseService.getSettings(),
+      ]);
+
+      setDonations(fetchedDonations);
+      setExpenses(fetchedExpenses);
+      setSettings(fetchedSettings);
+    } catch (err) {
+      console.error('Error fetching data:', err);
+    } finally {
+      setIsLoading(false);
+    }
   }, []);
+
+  // Initial load and Realtime Subscription
+  useEffect(() => {
+    loadAllData();
+    document.documentElement.classList.remove('dark');
+
+    // Subscribe to Supabase Realtime broadcast channels
+    const unsubscribe = DatabaseService.subscribeToRealtime(
+      () => {
+        // Refetch donations on change
+        DatabaseService.getDonations().then(setDonations);
+      },
+      () => {
+        // Refetch expenses on change
+        DatabaseService.getExpenses().then(setExpenses);
+      },
+      () => {
+        // Refetch settings on change
+        DatabaseService.getSettings().then(setSettings);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
+  }, [loadAllData]);
 
   // Compute Real-time Financial Summary
   const summary: FinancialSummary = useMemo(() => {
@@ -146,7 +188,8 @@ export default function App() {
   }, [donations, expenses]);
 
   // Save Donation Handler
-  const handleSaveDonation = (savedDonation: Donation) => {
+  const handleSaveDonation = async (savedDonation: Donation) => {
+    // Optimistic UI update
     let updated: Donation[];
     const exists = donations.some((d) => d.id === savedDonation.id);
 
@@ -155,18 +198,20 @@ export default function App() {
     } else {
       updated = [savedDonation, ...donations];
     }
-
     setDonations(updated);
-    StorageService.saveDonations(updated);
     setIsDonationModalOpen(false);
 
-    // Automatically open receipt modal after saving donation!
+    // Save to Database / Supabase
+    await DatabaseService.saveDonation(savedDonation);
+
+    // Automatically open receipt modal after saving donation
     setActiveReceiptDonation(savedDonation);
     setIsReceiptModalOpen(true);
   };
 
   // Save Expense Handler
-  const handleSaveExpense = (savedExpense: Expense) => {
+  const handleSaveExpense = async (savedExpense: Expense) => {
+    // Optimistic UI update
     let updated: Expense[];
     const exists = expenses.some((e) => e.id === savedExpense.id);
 
@@ -175,10 +220,11 @@ export default function App() {
     } else {
       updated = [savedExpense, ...expenses];
     }
-
     setExpenses(updated);
-    StorageService.saveExpenses(updated);
     setIsExpenseModalOpen(false);
+
+    // Save to Database / Supabase
+    await DatabaseService.saveExpense(savedExpense);
   };
 
   // Delete Transaction with Safety Confirmation
@@ -188,15 +234,15 @@ export default function App() {
       title: `Delete ${tx.type === 'donation' ? 'Donation' : 'Expense'} Record?`,
       message: `Are you sure you want to delete ${tx.number} (${tx.titleOrName})? This action cannot be undone.`,
       confirmLabel: 'Delete Record',
-      onConfirm: () => {
+      onConfirm: async () => {
         if (tx.type === 'donation') {
           const updated = donations.filter((d) => d.id !== tx.id);
           setDonations(updated);
-          StorageService.saveDonations(updated);
+          await DatabaseService.deleteDonation(tx.id);
         } else {
           const updated = expenses.filter((e) => e.id !== tx.id);
           setExpenses(updated);
-          StorageService.saveExpenses(updated);
+          await DatabaseService.deleteExpense(tx.id);
         }
       },
     });
@@ -214,9 +260,9 @@ export default function App() {
   };
 
   // Save Settings
-  const handleSaveSettings = (newSettings: MandalSettings) => {
+  const handleSaveSettings = async (newSettings: MandalSettings) => {
     setSettings(newSettings);
-    StorageService.saveSettings(newSettings);
+    await DatabaseService.saveSettings(newSettings);
   };
 
   // Reset to Sample Data
@@ -226,11 +272,9 @@ export default function App() {
       title: 'Load Sample Ganeshotsav Data?',
       message: 'This will reset current data to sample donations and expenses.',
       confirmLabel: 'Load Sample Data',
-      onConfirm: () => {
+      onConfirm: async () => {
         StorageService.resetToSampleData();
-        setDonations(StorageService.getDonations());
-        setExpenses(StorageService.getExpenses());
-        setSettings(StorageService.getSettings());
+        await loadAllData();
       },
     });
   };
@@ -260,125 +304,130 @@ export default function App() {
 
       {/* Main View Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-4 overflow-x-hidden">
-        {activeTab === 'dashboard' && (
-          <Dashboard
-            summary={summary}
-            recentTransactions={transactions}
-            onOpenAddDonation={() => {
-              setEditingDonation(null);
-              setIsDonationModalOpen(true);
-            }}
-            onOpenAddExpense={() => {
-              setEditingExpense(null);
-              setIsExpenseModalOpen(true);
-            }}
-            onViewAllTransactions={() => setActiveTab('transactions')}
-            onSelectTransaction={(tx) => {
-              if (tx.type === 'donation') {
-                setActiveReceiptDonation(tx.originalItem as Donation);
-                setIsReceiptModalOpen(true);
-              } else if ((tx.originalItem as Expense).bill_image) {
-                setActiveBillUrl((tx.originalItem as Expense).bill_image || null);
-                setIsBillModalOpen(true);
-              }
-            }}
-            expenses={expenses}
-            donations={donations}
-          />
-        )}
+        {isLoading ? (
+          <div className="flex flex-col items-center justify-center py-20 space-y-3">
+            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
+            <p className="text-xs font-bold text-slate-500">Connecting to Database...</p>
+          </div>
+        ) : (
+          <>
+            {activeTab === 'dashboard' && (
+              <Dashboard
+                summary={summary}
+                recentTransactions={transactions}
+                onOpenAddDonation={() => {
+                  setEditingDonation(null);
+                  setIsDonationModalOpen(true);
+                }}
+                onOpenAddExpense={() => {
+                  setEditingExpense(null);
+                  setIsExpenseModalOpen(true);
+                }}
+                onViewAllTransactions={() => setActiveTab('transactions')}
+                onSelectTransaction={(tx) => {
+                  if (tx.type === 'donation') {
+                    setActiveReceiptDonation(tx.originalItem as Donation);
+                    setIsReceiptModalOpen(true);
+                  } else if ((tx.originalItem as Expense).bill_image) {
+                    setActiveBillUrl((tx.originalItem as Expense).bill_image || null);
+                    setIsBillModalOpen(true);
+                  }
+                }}
+                expenses={expenses}
+                donations={donations}
+              />
+            )}
 
-        {activeTab === 'donations' && (
-          <TransactionsView
-            transactions={transactions.filter((t) => t.type === 'donation')}
-            onOpenAddDonation={() => {
-              setEditingDonation(null);
-              setIsDonationModalOpen(true);
-            }}
-            onOpenAddExpense={() => {
-              setEditingExpense(null);
-              setIsExpenseModalOpen(true);
-            }}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onViewReceipt={(tx) => {
-              setActiveReceiptDonation(tx.originalItem as Donation);
-              setIsReceiptModalOpen(true);
-            }}
-            onViewBillImage={(url) => {
-              setActiveBillUrl(url);
-              setIsBillModalOpen(true);
-            }}
-          />
-        )}
+            {activeTab === 'donations' && (
+              <TransactionsView
+                transactions={transactions.filter((t) => t.type === 'donation')}
+                onOpenAddDonation={() => {
+                  setEditingDonation(null);
+                  setIsDonationModalOpen(true);
+                }}
+                onOpenAddExpense={() => {
+                  setEditingExpense(null);
+                  setIsExpenseModalOpen(true);
+                }}
+                onEditTransaction={handleEditTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
+                onViewReceipt={(tx) => {
+                  setActiveReceiptDonation(tx.originalItem as Donation);
+                  setIsReceiptModalOpen(true);
+                }}
+                onViewBillImage={(url) => {
+                  setActiveBillUrl(url);
+                  setIsBillModalOpen(true);
+                }}
+              />
+            )}
 
-        {activeTab === 'expenses' && (
-          <TransactionsView
-            transactions={transactions.filter((t) => t.type === 'expense')}
-            onOpenAddDonation={() => {
-              setEditingDonation(null);
-              setIsDonationModalOpen(true);
-            }}
-            onOpenAddExpense={() => {
-              setEditingExpense(null);
-              setIsExpenseModalOpen(true);
-            }}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onViewReceipt={(tx) => {
-              setActiveReceiptDonation(tx.originalItem as Donation);
-              setIsReceiptModalOpen(true);
-            }}
-            onViewBillImage={(url) => {
-              setActiveBillUrl(url);
-              setIsBillModalOpen(true);
-            }}
-          />
-        )}
+            {activeTab === 'expenses' && (
+              <TransactionsView
+                transactions={transactions.filter((t) => t.type === 'expense')}
+                onOpenAddDonation={() => {
+                  setEditingDonation(null);
+                  setIsDonationModalOpen(true);
+                }}
+                onOpenAddExpense={() => {
+                  setEditingExpense(null);
+                  setIsExpenseModalOpen(true);
+                }}
+                onEditTransaction={handleEditTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
+                onViewReceipt={(tx) => {
+                  setActiveReceiptDonation(tx.originalItem as Donation);
+                  setIsReceiptModalOpen(true);
+                }}
+                onViewBillImage={(url) => {
+                  setActiveBillUrl(url);
+                  setIsBillModalOpen(true);
+                }}
+              />
+            )}
 
-        {activeTab === 'transactions' && (
-          <TransactionsView
-            transactions={transactions}
-            onOpenAddDonation={() => {
-              setEditingDonation(null);
-              setIsDonationModalOpen(true);
-            }}
-            onOpenAddExpense={() => {
-              setEditingExpense(null);
-              setIsExpenseModalOpen(true);
-            }}
-            onEditTransaction={handleEditTransaction}
-            onDeleteTransaction={handleDeleteTransaction}
-            onViewReceipt={(tx) => {
-              setActiveReceiptDonation(tx.originalItem as Donation);
-              setIsReceiptModalOpen(true);
-            }}
-            onViewBillImage={(url) => {
-              setActiveBillUrl(url);
-              setIsBillModalOpen(true);
-            }}
-          />
-        )}
+            {activeTab === 'transactions' && (
+              <TransactionsView
+                transactions={transactions}
+                onOpenAddDonation={() => {
+                  setEditingDonation(null);
+                  setIsDonationModalOpen(true);
+                }}
+                onOpenAddExpense={() => {
+                  setEditingExpense(null);
+                  setIsExpenseModalOpen(true);
+                }}
+                onEditTransaction={handleEditTransaction}
+                onDeleteTransaction={handleDeleteTransaction}
+                onViewReceipt={(tx) => {
+                  setActiveReceiptDonation(tx.originalItem as Donation);
+                  setIsReceiptModalOpen(true);
+                }}
+                onViewBillImage={(url) => {
+                  setActiveBillUrl(url);
+                  setIsBillModalOpen(true);
+                }}
+              />
+            )}
 
-        {activeTab === 'reports' && (
-          <ReportsView
-            summary={summary}
-            donations={donations}
-            expenses={expenses}
-            settings={settings}
-          />
-        )}
+            {activeTab === 'reports' && (
+              <ReportsView
+                summary={summary}
+                donations={donations}
+                expenses={expenses}
+                settings={settings}
+              />
+            )}
 
-        {activeTab === 'settings' && (
-          <SettingsView
-            settings={settings}
-            onSaveSettings={handleSaveSettings}
-            onReloadData={() => {
-              setDonations(StorageService.getDonations());
-              setExpenses(StorageService.getExpenses());
-              setSettings(StorageService.getSettings());
-            }}
-            onConfirmResetSample={handleConfirmResetSample}
-          />
+            {activeTab === 'settings' && (
+              <SettingsView
+                settings={settings}
+                onSaveSettings={handleSaveSettings}
+                onReloadData={loadAllData}
+                onConfirmResetSample={handleConfirmResetSample}
+              />
+            )}
+          </>
         )}
       </main>
 
@@ -420,6 +469,13 @@ export default function App() {
         confirmLabel={confirmModal.confirmLabel}
         onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
         onConfirm={confirmModal.onConfirm}
+      />
+
+      {/* Security App Passcode Lock (5050) */}
+      <AppLockModal
+        isUnlocked={isAppUnlocked}
+        onUnlock={() => setIsAppUnlocked(true)}
+        settings={settings}
       />
     </div>
   );

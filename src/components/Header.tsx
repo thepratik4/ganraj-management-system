@@ -1,13 +1,15 @@
 import React from 'react';
-import { Database } from 'lucide-react';
+import { Database, Zap, CloudOff } from 'lucide-react';
 import { MandalSettings, FinancialSummary } from '../types';
 import { formatINR } from '../utils/currency';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface HeaderProps {
   settings: MandalSettings;
   summary: FinancialSummary;
   onOpenSettings: () => void;
   onQuickBackup: () => void;
+  onOpenSupabaseModal?: () => void;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -15,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   summary,
   onOpenSettings,
   onQuickBackup,
+  onOpenSupabaseModal,
 }) => {
   const isPositive = summary.currentBalance >= 0;
 
@@ -58,6 +61,28 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Right Controls & Balance Chip */}
         <div className="flex items-center gap-2">
+          {/* Supabase Status Pill */}
+          <div
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${
+              isSupabaseConfigured
+                ? 'bg-emerald-900 text-emerald-100 border-emerald-500'
+                : 'bg-amber-100 text-amber-900 border-amber-300'
+            }`}
+            title={isSupabaseConfigured ? 'Supabase Realtime Cloud Sync Active' : 'Local Storage Cache Mode'}
+          >
+            {isSupabaseConfigured ? (
+              <>
+                <Zap className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
+                <span className="hidden xs:inline">Supabase Live</span>
+              </>
+            ) : (
+              <>
+                <CloudOff className="w-3.5 h-3.5 text-amber-800" />
+                <span className="hidden xs:inline">Local Mode</span>
+              </>
+            )}
+          </div>
+
           {/* Quick Balance Badge */}
           <div
             className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-xs ${

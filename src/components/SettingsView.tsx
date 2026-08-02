@@ -9,15 +9,18 @@ import {
   AlertCircle,
   FileSpreadsheet,
   Upload,
+  Zap,
 } from 'lucide-react';
 import { MandalSettings } from '../types';
 import { StorageService } from '../utils/storage';
+import { isSupabaseConfigured } from '../lib/supabase';
 
 interface SettingsViewProps {
   settings: MandalSettings;
   onSaveSettings: (newSettings: MandalSettings) => void;
   onReloadData: () => void;
   onConfirmResetSample: () => void;
+  onOpenSupabaseModal?: () => void;
 }
 
 const LOGO_PRESETS = [
@@ -36,6 +39,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   onSaveSettings,
   onReloadData,
   onConfirmResetSample,
+  onOpenSupabaseModal,
 }) => {
   const [mandalName, setMandalName] = useState(settings.mandal_name);
   const [logo, setLogo] = useState(settings.logo);
@@ -245,6 +249,34 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </button>
           </div>
         </form>
+      </div>
+
+      {/* Supabase Realtime Database Sync Section */}
+      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+            <Zap className="w-5 h-5 text-emerald-600" />
+          </div>
+          <div>
+            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight flex items-center gap-2">
+              <span>Supabase Realtime Cloud Sync</span>
+              <span
+                className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
+                  isSupabaseConfigured
+                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
+                    : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
+                }`}
+              >
+                {isSupabaseConfigured ? 'CONNECTED' : 'LOCAL CACHE MODE'}
+              </span>
+            </h3>
+            <p className="text-xs text-slate-500">
+              {isSupabaseConfigured
+                ? 'Cloud Database Active — All records sync in real-time across devices'
+                : 'Local Offline Mode — Data saved locally in browser storage'}
+            </p>
+          </div>
+        </div>
       </div>
 
       {/* Database Backup & Maintenance Section */}
