@@ -1,4 +1,4 @@
--- Run this SQL in your Supabase SQL Editor to create the tables and enable Realtime sync:
+-- Run this SQL in your Supabase SQL Editor to create the tables, storage bucket, and enable Realtime sync:
 
 -- 1. Create Donations Table
 CREATE TABLE IF NOT EXISTS public.donations (
@@ -63,3 +63,13 @@ CREATE POLICY "Allow public update on mandal_settings" ON public.mandal_settings
 ALTER PUBLICATION supabase_realtime ADD TABLE public.donations;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.expenses;
 ALTER PUBLICATION supabase_realtime ADD TABLE public.mandal_settings;
+
+-- 6. Create Storage Bucket for Expense Bills & Enable Public Access
+INSERT INTO storage.buckets (id, name, public) 
+VALUES ('expense-bills', 'expense-bills', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Allow public select on expense-bills" ON storage.objects FOR SELECT USING (bucket_id = 'expense-bills');
+CREATE POLICY "Allow public insert on expense-bills" ON storage.objects FOR INSERT WITH CHECK (bucket_id = 'expense-bills');
+CREATE POLICY "Allow public update on expense-bills" ON storage.objects FOR UPDATE USING (bucket_id = 'expense-bills');
+CREATE POLICY "Allow public delete on expense-bills" ON storage.objects FOR DELETE USING (bucket_id = 'expense-bills');

@@ -381,4 +381,53 @@ export class DatabaseService {
       console.error('Failed syncing local expenses to Supabase:', err);
     }
   }
+
+  /**
+   * Upload an Expense Bill photo to Supabase Storage Bucket ('expense-bills')
+   * Returns public CDN URL on success, or fallback Base64 data URL
+   */
+  static async uploadBillImage(file: File): Promise<string> {
+    if (!isSupabaseConfigured || !supabase) {
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
+
+    try {
+      const fileExt = file.name.split('.').pop() || 'jpg';
+      const fileName = `bill_${Date.now()}_${Math.random().toString(36).substring(2, 7)}.${fileExt}`;
+      const filePath = `receipts/${fileName}`;
+
+      const { error } = await supabase.storage
+        .from('expense-bills')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('Supabase Storage Upload Error:', error);
+        return new Promise((resolve) => {
+          const reader = new FileReader();
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(file);
+        });
+      }
+
+      const { data: publicUrlData } = supabase.storage
+        .from('expense-bills')
+        .getPublicUrl(filePath);
+
+      return publicUrlData.publicUrl;
+    } catch (err) {
+      console.error('Upload bill failed:', err);
+      return new Promise((resolve) => {
+        const reader = new FileReader();
+        reader.onloadend = () => resolve(reader.result as string);
+        reader.readAsDataURL(file);
+      });
+    }
+  }
 }

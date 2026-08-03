@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import { X, Receipt, CheckCircle2, AlertCircle, Upload, Trash2 } from 'lucide-react';
+import { X, Receipt, CheckCircle2, AlertCircle, Upload, Trash2, Loader2 } from 'lucide-react';
 import { Expense, ExpenseCategory, PaymentMode } from '../types';
 import { isValidMobileNumber, cleanPhoneNumber } from '../utils/currency';
 import { StorageService } from '../utils/storage';
+import { DatabaseService } from '../services/db';
 
 interface ExpenseModalProps {
   isOpen: boolean;
@@ -18,10 +19,9 @@ const CATEGORIES: ExpenseCategory[] = [
   'Food',
   'Prasad',
   'Sound',
-  'Electricity',
-  'Printing',
-  'Transportation',
-  'Miscellaneous',
+  'Pandal',
+  'Permission',
+  'Misc',
 ];
 
 export const ExpenseModal: React.FC<ExpenseModalProps> = ({
@@ -38,6 +38,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [billImage, setBillImage] = useState<string>('');
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
   const [notes, setNotes] = useState('');
   const [expenseNumber, setExpenseNumber] = useState('');
 
@@ -47,6 +49,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      setSelectedFile(null);
+      setIsUploading(false);
       if (editingExpense) {
         setTitle(editingExpense.title);
         setCategory(editingExpense.category);
@@ -81,10 +85,11 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        alert('Image size should be less than 5MB');
+      if (file.size > 10 * 1024 * 1024) {
+        alert('Image size should be less than 10MB');
         return;
       }
+      setSelectedFile(file);
       const reader = new FileReader();
       reader.onloadend = () => {
         setBillImage(reader.result as string);
@@ -93,7 +98,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     let valid = true;
@@ -123,6 +128,17 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
     if (!valid) return;
 
+    setIsUploading(true);
+    let finalBillUrl = billImage;
+
+    if (selectedFile) {
+      try {
+        finalBillUrl = await DatabaseService.uploadBillImage(selectedFile);
+      } catch (err) {
+        console.error('Failed uploading bill to Supabase storage:', err);
+      }
+    }
+
     const newExpense: Expense = {
       id: editingExpense ? editingExpense.id : `exp-${Date.now()}`,
       expense_number: expenseNumber,
@@ -132,7 +148,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       vendor_phone: cleanedVendorPhone,
       amount: numericAmount,
       payment_mode: paymentMode,
-      bill_image: billImage,
+      bill_image: finalBillUrl,
       date,
       notes: notes.trim(),
       created_at: editingExpense
@@ -140,6 +156,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         : new Date().toISOString(),
     };
 
+    setIsUploading(false);
     onSave(newExpense);
   };
 
@@ -380,10 +397,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+              disabled={isUploading}
+              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{editingExpense ? 'Update Expense' : 'Save Expense'}</span>
+              {isUploading ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Uploading Receipt...</span>
+                </>
+              ) : (
+                <>
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span>{editingExpense ? 'Update Expense' : 'Save Expense'}</span>
+                </>
+              )}
             </button>
           </div>
         </form>
