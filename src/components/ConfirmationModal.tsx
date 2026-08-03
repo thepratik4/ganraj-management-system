@@ -96,7 +96,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 setPin(e.target.value);
                 if (pinError) setPinError(false);
               }}
-              placeholder="Enter PIN 2020"
+              placeholder="Enter PIN "
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-black text-center tracking-widest focus:outline-none transition-all ${
                 pinError
                   ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-600 focus:ring-2 focus:ring-rose-500'
@@ -106,7 +106,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           </div>
           {pinError && (
             <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 text-center animate-shake">
-              ⚠️ Incorrect Password! Please enter 2020.
+              ⚠️ Incorrect Password! Please contact pratik.
             </p>
           )}
         </form>
