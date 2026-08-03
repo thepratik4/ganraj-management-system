@@ -80,11 +80,11 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
           {message}
         </p>
 
-        {/* Security Password Box for Deletion */}
+        {/* Security Password Box */}
         <form onSubmit={handleConfirmAction} className="mb-5 space-y-2">
           <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-            <Lock className="w-3 h-3 text-rose-500" />
-            <span>Enter Delete Password :</span>
+            <Lock className={`w-3 h-3 ${isDanger ? 'text-rose-500' : 'text-amber-500'}`} />
+            <span>{isDanger ? 'Enter Delete Password :' : 'Enter Edit Password :'}</span>
           </label>
           <div className="relative">
             <input
@@ -96,17 +96,17 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
                 setPin(e.target.value);
                 if (pinError) setPinError(false);
               }}
-              placeholder="Enter PIN "
+              placeholder="Enter PIN 2020"
               className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-black text-center tracking-widest focus:outline-none transition-all ${
                 pinError
                   ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-600 focus:ring-2 focus:ring-rose-500'
-                  : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-rose-500'
+                  : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500'
               }`}
             />
           </div>
           {pinError && (
             <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 text-center animate-shake">
-              ⚠️ Incorrect Password! contact pratik.
+              ⚠️ Incorrect Password! Please enter 2020.
             </p>
           )}
         </form>

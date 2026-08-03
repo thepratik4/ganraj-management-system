@@ -50,6 +50,7 @@ export default function App() {
     title: string;
     message: string;
     confirmLabel?: string;
+    isDanger?: boolean;
     onConfirm: () => void;
   }>({
     isOpen: false,
@@ -234,6 +235,7 @@ export default function App() {
       title: `Delete ${tx.type === 'donation' ? 'Donation' : 'Expense'} Record?`,
       message: `Are you sure you want to delete ${tx.number} (${tx.titleOrName})? This action cannot be undone.`,
       confirmLabel: 'Delete Record',
+      isDanger: true,
       onConfirm: async () => {
         if (tx.type === 'donation') {
           const updated = donations.filter((d) => d.id !== tx.id);
@@ -248,15 +250,24 @@ export default function App() {
     });
   };
 
-  // Edit Transaction Trigger
+  // Edit Transaction Trigger (Requires Password 2020)
   const handleEditTransaction = (tx: Transaction) => {
-    if (tx.type === 'donation') {
-      setEditingDonation(tx.originalItem as Donation);
-      setIsDonationModalOpen(true);
-    } else {
-      setEditingExpense(tx.originalItem as Expense);
-      setIsExpenseModalOpen(true);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: `Edit ${tx.type === 'donation' ? 'Donation' : 'Expense'} Record?`,
+      message: `Are you sure you want to edit ${tx.number} (${tx.titleOrName})? Please enter password to proceed.`,
+      confirmLabel: 'Edit Record',
+      isDanger: false,
+      onConfirm: () => {
+        if (tx.type === 'donation') {
+          setEditingDonation(tx.originalItem as Donation);
+          setIsDonationModalOpen(true);
+        } else {
+          setEditingExpense(tx.originalItem as Expense);
+          setIsExpenseModalOpen(true);
+        }
+      },
+    });
   };
 
   // Save Settings
@@ -467,6 +478,7 @@ export default function App() {
         title={confirmModal.title}
         message={confirmModal.message}
         confirmLabel={confirmModal.confirmLabel}
+        isDanger={confirmModal.isDanger}
         onClose={() => setConfirmModal({ ...confirmModal, isOpen: false })}
         onConfirm={confirmModal.onConfirm}
       />

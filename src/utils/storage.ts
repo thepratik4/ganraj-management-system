@@ -9,7 +9,7 @@ const STORAGE_KEYS = {
 export const DEFAULT_SETTINGS: MandalSettings = {
   mandal_name: 'Ganraj Mitra Mandal',
   logo: 'https://images.unsplash.com/photo-1567157577867-05ccb1388e66?auto=format&fit=crop&q=80&w=200',
-  whatsapp_number: '9876543210',
+  whatsapp_number: '',
   receipt_footer: 'Thank you for your devotion and generous contribution to Ganeshotsav. Ganpati Bappa Morya!',
   ganeshotsav_year: '2026',
 };
