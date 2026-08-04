@@ -39,7 +39,7 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
   const handleConfirmAction = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
 
-    if (pin.trim() === '2020') {
+    if (pin.trim() === '1010') {
       setPinError(false);
       onConfirm();
       onClose();
