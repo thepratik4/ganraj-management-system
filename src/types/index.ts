@@ -10,6 +10,9 @@ export type ExpenseCategory =
   | 'Electricity'
   | 'Printing'
   | 'Transportation'
+  | 'Pandal'
+  | 'Permission'
+  | 'Misc'
   | 'Miscellaneous';
 
 export interface Donation {

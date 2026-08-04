@@ -30,7 +30,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   // High-res preview image generated on Canvas
   const receiptImgUrl = useMemo(() => {
     if (!donation) return '';
-    const canvas = drawReceiptCanvas(donation, settings, 1200, 1800);
+    const canvas = drawReceiptCanvas(donation, settings, 1200, 780);
     return canvas.toDataURL('image/png');
   }, [donation, settings]);
 
@@ -38,7 +38,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
 
   // Download High-Resolution PNG Image (Primary format)
   const handleDownloadImage = () => {
-    const canvas = drawReceiptCanvas(donation, settings, 1200, 1800);
+    const canvas = drawReceiptCanvas(donation, settings, 1200, 780);
     const link = document.createElement('a');
     link.download = `Receipt_${donation.receipt_number}_${donation.donor_name.replace(/\s+/g, '_')}.png`;
     link.href = canvas.toDataURL('image/png', 1.0);
@@ -49,7 +49,7 @@ export const ReceiptModal: React.FC<ReceiptModalProps> = ({
   const handleShareImage = async () => {
     setIsSharing(true);
     try {
-      const canvas = drawReceiptCanvas(donation, settings, 1200, 1800);
+      const canvas = drawReceiptCanvas(donation, settings, 1200, 780);
       canvas.toBlob(async (blob) => {
         if (!blob) {
           setIsSharing(false);

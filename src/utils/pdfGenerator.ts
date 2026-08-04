@@ -11,19 +11,19 @@ export function generateReceiptPDF(
   donation: Donation,
   settings: MandalSettings
 ): jsPDF {
-  // Render high-res canvas (1200 x 1800 portrait mobile format)
-  const canvas = drawReceiptCanvas(donation, settings, 1200, 1800);
+  // Render high-res canvas (1200 x 780 landscape card format)
+  const canvas = drawReceiptCanvas(donation, settings, 1200, 780);
   const imgData = canvas.toDataURL('image/png');
 
-  // Create portrait PDF matching 2:3 aspect ratio (140mm x 210mm A5 portrait)
+  // Create landscape PDF matching 1200:780 aspect ratio (210mm x 136.5mm)
   const doc = new jsPDF({
-    orientation: 'portrait',
+    orientation: 'landscape',
     unit: 'mm',
-    format: [140, 210],
+    format: [210, 136.5],
   });
 
   // Add template image to cover entire PDF page
-  doc.addImage(imgData, 'PNG', 0, 0, 140, 210);
+  doc.addImage(imgData, 'PNG', 0, 0, 210, 136.5);
 
   return doc;
 }
