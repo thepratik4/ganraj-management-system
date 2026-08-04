@@ -10,6 +10,7 @@ interface DonationModalProps {
   onClose: () => void;
   onSave: (donation: Donation) => void;
   editingDonation?: Donation | null;
+  existingDonations?: Donation[];
 }
 
 export const DonationModal: React.FC<DonationModalProps> = ({
@@ -17,6 +18,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   onClose,
   onSave,
   editingDonation,
+  existingDonations = [],
 }) => {
   const [donorName, setDonorName] = useState('');
   const [phone, setPhone] = useState('');
@@ -28,6 +30,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   const [phoneError, setPhoneError] = useState('');
   const [nameError, setNameError] = useState('');
   const [amountError, setAmountError] = useState('');
+  const [networkError, setNetworkError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -46,18 +49,25 @@ export const DonationModal: React.FC<DonationModalProps> = ({
         setPaymentMode('Cash');
         setDate(new Date().toISOString().split('T')[0]);
         setNotes('');
-        setReceiptNumber(StorageService.getNextReceiptNumber());
+        setReceiptNumber(StorageService.getNextReceiptNumber(existingDonations));
       }
       setPhoneError('');
       setNameError('');
       setAmountError('');
+      setNetworkError('');
     }
-  }, [isOpen, editingDonation]);
+  }, [isOpen, editingDonation, existingDonations]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!navigator.onLine) {
+      setNetworkError('No internet connection. Please connect to the internet to save and generate receipt.');
+      return;
+    }
+    setNetworkError('');
 
     let valid = true;
 
@@ -86,8 +96,11 @@ export const DonationModal: React.FC<DonationModalProps> = ({
 
     if (!valid) return;
 
+    const receiptDigits = receiptNumber.replace(/\D/g, '') || String(Date.now());
+    const id = editingDonation ? editingDonation.id : `don-${parseInt(receiptDigits, 10)}`;
+
     const newDonation: Donation = {
-      id: editingDonation ? editingDonation.id : `don-${Date.now()}`,
+      id,
       receipt_number: receiptNumber,
       donor_name: donorName.trim(),
       phone: cleanedPhone,
@@ -278,6 +291,14 @@ export const DonationModal: React.FC<DonationModalProps> = ({
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
             />
           </div>
+
+          {/* Network Error Alert */}
+          {networkError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{networkError}</span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-2 flex items-center justify-end gap-2">

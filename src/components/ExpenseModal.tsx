@@ -10,6 +10,7 @@ interface ExpenseModalProps {
   onClose: () => void;
   onSave: (expense: Expense) => void;
   editingExpense?: Expense | null;
+  existingExpenses?: Expense[];
 }
 
 const CATEGORIES: ExpenseCategory[] = [
@@ -29,6 +30,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   onClose,
   onSave,
   editingExpense,
+  existingExpenses = [],
 }) => {
   const [title, setTitle] = useState('');
   const [category, setCategory] = useState<ExpenseCategory>('Decoration');
@@ -46,6 +48,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [titleError, setTitleError] = useState('');
   const [amountError, setAmountError] = useState('');
   const [phoneError, setPhoneError] = useState('');
+  const [networkError, setNetworkError] = useState('');
 
   useEffect(() => {
     if (isOpen) {
@@ -72,13 +75,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setDate(new Date().toISOString().split('T')[0]);
         setBillImage('');
         setNotes('');
-        setExpenseNumber(StorageService.getNextExpenseNumber());
+        setExpenseNumber(StorageService.getNextExpenseNumber(existingExpenses));
       }
       setTitleError('');
       setAmountError('');
       setPhoneError('');
+      setNetworkError('');
     }
-  }, [isOpen, editingExpense]);
+  }, [isOpen, editingExpense, existingExpenses]);
 
   if (!isOpen) return null;
 
@@ -100,6 +104,12 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!navigator.onLine) {
+      setNetworkError('No internet connection. Please connect to the internet to save expense.');
+      return;
+    }
+    setNetworkError('');
 
     let valid = true;
 
@@ -139,8 +149,11 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       }
     }
 
+    const expenseDigits = expenseNumber.replace(/\D/g, '') || String(Date.now());
+    const id = editingExpense ? editingExpense.id : `exp-${parseInt(expenseDigits, 10)}`;
+
     const newExpense: Expense = {
-      id: editingExpense ? editingExpense.id : `exp-${Date.now()}`,
+      id,
       expense_number: expenseNumber,
       title: title.trim(),
       category,
@@ -385,6 +398,14 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
             />
           </div>
+
+          {/* Network Error Alert */}
+          {networkError && (
+            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
+              <span>{networkError}</span>
+            </div>
+          )}
 
           {/* Actions */}
           <div className="pt-2 flex items-center justify-end gap-2">

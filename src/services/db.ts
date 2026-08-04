@@ -4,15 +4,18 @@ import { StorageService, DEFAULT_SETTINGS } from '../utils/storage';
 
 export class DatabaseService {
   /**
-   * Fetch all Donations from Supabase with Smart Merge & Soft Delete Filtering
+   * Helper to check if client has active internet connectivity
+   */
+  static isOnline(): boolean {
+    return typeof navigator !== 'undefined' ? navigator.onLine : true;
+  }
+
+  /**
+   * Fetch all active Donations directly from Supabase
    */
   static async getDonations(): Promise<Donation[]> {
-    const deletedIds = new Set(StorageService.getDeletedIds());
-    const rawLocal = StorageService.getDonations();
-    const local = rawLocal.filter((d) => d.is_active !== false && !deletedIds.has(d.id));
-
     if (!isSupabaseConfigured || !supabase) {
-      return local;
+      return [];
     }
 
     try {
@@ -21,131 +24,75 @@ export class DatabaseService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching donations from Supabase, falling back to local cache:', error);
-        return local;
+      if (error || !data) {
+        console.error('Error fetching donations from Supabase:', error);
+        return [];
       }
 
-      const cloudMap = new Map<string, Donation>();
-      if (data && data.length > 0) {
-        for (const item of data) {
-          // If marked as soft deleted in database or local deleted list, skip active display
-          if (item.is_active === false || deletedIds.has(item.id)) {
-            if (deletedIds.has(item.id)) {
-              supabase.from('donations').update({ is_active: false }).eq('id', item.id).then(() => {
-                StorageService.removeDeletedId(item.id);
-              });
-            }
-            continue;
-          }
-
-          cloudMap.set(item.id, {
-            id: item.id,
-            receipt_number: item.receipt_number,
-            donor_name: item.donor_name,
-            phone: item.phone || '',
-            amount: Number(item.amount),
-            payment_mode: item.payment_mode,
-            date: item.date,
-            notes: item.notes || '',
-            created_at: item.created_at || new Date().toISOString(),
-            updated_at: item.updated_at || item.created_at || new Date().toISOString(),
-            is_active: item.is_active ?? true,
-          });
-        }
-      }
-
-      // Merge local entries into cloud map (smart resolution)
-      const unSyncedLocal: Donation[] = [];
-      local.forEach((localItem) => {
-        if (!cloudMap.has(localItem.id)) {
-          // Local item doesn't exist on cloud -> retain local & queue push to cloud
-          cloudMap.set(localItem.id, localItem);
-          unSyncedLocal.push(localItem);
-        } else {
-          // Item exists on both -> compare timestamps (local offline edit vs cloud)
-          const cloudItem = cloudMap.get(localItem.id)!;
-          const localTime = new Date(localItem.updated_at || localItem.created_at).getTime();
-          const cloudTime = new Date(cloudItem.updated_at || cloudItem.created_at).getTime();
-
-          if (localTime > cloudTime) {
-            // Local offline edit is newer -> keep local & queue push to cloud
-            cloudMap.set(localItem.id, localItem);
-            unSyncedLocal.push(localItem);
-          }
-        }
-      });
-
-      // Auto-sync any un-synced local items back to Supabase in the background
-      if (unSyncedLocal.length > 0) {
-        this.syncLocalDonationsToSupabase(unSyncedLocal);
-      }
-
-      // Sort descending by created_at / date
-      const merged = Array.from(cloudMap.values()).sort((a, b) => 
-        new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime()
-      );
-
-      // Cache merged result to LocalStorage
-      StorageService.saveDonations(merged);
-      return merged;
+      return data
+        .filter((item) => item.is_active !== false)
+        .map((item) => ({
+          id: item.id,
+          receipt_number: item.receipt_number,
+          donor_name: item.donor_name,
+          phone: item.phone || '',
+          amount: Number(item.amount),
+          payment_mode: item.payment_mode,
+          date: item.date,
+          notes: item.notes || '',
+          created_at: item.created_at || new Date().toISOString(),
+          updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+          is_active: item.is_active ?? true,
+        }));
     } catch (err) {
-      console.error('Supabase getDonations failed, returning local cache:', err);
-      return local;
+      console.error('Supabase getDonations failed:', err);
+      return [];
     }
   }
 
   /**
-   * Save / Upsert a Donation record
+   * Save / Upsert a Donation directly to Supabase
+   * Throws error if no internet or failed so UI can notify user!
    */
   static async saveDonation(donation: Donation): Promise<Donation> {
+    if (!this.isOnline()) {
+      throw new Error('OFFLINE_NO_INTERNET');
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('SUPABASE_NOT_CONFIGURED');
+    }
+
     const updatedItem: Donation = {
       ...donation,
       is_active: donation.is_active ?? true,
       updated_at: new Date().toISOString(),
     };
 
-    // 1. Save locally first for instant UI response and offline safety
-    const currentLocal = StorageService.getDonations();
-    const existingIndex = currentLocal.findIndex((d) => d.id === updatedItem.id);
-    let updatedLocal: Donation[];
-    if (existingIndex >= 0) {
-      updatedLocal = [...currentLocal];
-      updatedLocal[existingIndex] = updatedItem;
-    } else {
-      updatedLocal = [updatedItem, ...currentLocal];
-    }
-    StorageService.saveDonations(updatedLocal);
+    const payload: Record<string, any> = {
+      id: updatedItem.id,
+      receipt_number: updatedItem.receipt_number,
+      donor_name: updatedItem.donor_name,
+      phone: updatedItem.phone || null,
+      amount: updatedItem.amount,
+      payment_mode: updatedItem.payment_mode,
+      date: updatedItem.date,
+      notes: updatedItem.notes || null,
+      is_active: updatedItem.is_active,
+      created_at: updatedItem.created_at,
+      updated_at: updatedItem.updated_at,
+    };
 
-    // 2. Sync to Supabase Cloud
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const payload: Record<string, any> = {
-          id: updatedItem.id,
-          receipt_number: updatedItem.receipt_number,
-          donor_name: updatedItem.donor_name,
-          phone: updatedItem.phone || null,
-          amount: updatedItem.amount,
-          payment_mode: updatedItem.payment_mode,
-          date: updatedItem.date,
-          notes: updatedItem.notes || null,
-          is_active: updatedItem.is_active,
-          created_at: updatedItem.created_at,
-          updated_at: updatedItem.updated_at,
-        };
-
-        const { error } = await supabase.from('donations').upsert(payload, { onConflict: 'id' });
-        if (error) {
-          if (error.code === '42703') {
-            delete payload.updated_at;
-            delete payload.is_active;
-            await supabase.from('donations').upsert(payload, { onConflict: 'id' });
-          } else {
-            console.error('Failed to upsert donation to Supabase:', error);
-          }
-        }
-      } catch (err) {
-        console.error('Supabase saveDonation error:', err);
+    const { error } = await supabase.from('donations').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      if (error.code === '42703') {
+        delete payload.updated_at;
+        delete payload.is_active;
+        const retry = await supabase.from('donations').upsert(payload, { onConflict: 'id' });
+        if (retry.error) throw retry.error;
+      } else {
+        console.error('Failed to upsert donation to Supabase:', error);
+        throw error;
       }
     }
 
@@ -153,49 +100,36 @@ export class DatabaseService {
   }
 
   /**
-   * Soft Delete a Donation record (sets is_active = false in DB so data is never permanently lost)
+   * Soft Delete a Donation record in Supabase
    */
   static async deleteDonation(id: string): Promise<void> {
-    StorageService.addDeletedId(id);
+    if (!this.isOnline()) {
+      throw new Error('OFFLINE_NO_INTERNET');
+    }
 
-    // Soft delete locally
-    const currentLocal = StorageService.getDonations();
-    const updatedLocal = currentLocal.filter((d) => d.id !== id);
-    StorageService.saveDonations(updatedLocal);
+    if (!isSupabaseConfigured || !supabase) return;
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        // Soft delete in Supabase cloud database
-        const { error } = await supabase
-          .from('donations')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq('id', id);
+    const { error } = await supabase
+      .from('donations')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
 
-        if (!error) {
-          StorageService.removeDeletedId(id);
-        } else if (error.code === '42703') {
-          // If is_active column doesn't exist yet, fallback to hard delete
-          await supabase.from('donations').delete().eq('id', id);
-          StorageService.removeDeletedId(id);
-        } else {
-          console.error('Failed to soft delete donation from Supabase:', error);
-        }
-      } catch (err) {
-        console.error('Supabase deleteDonation error:', err);
+    if (error) {
+      if (error.code === '42703') {
+        await supabase.from('donations').delete().eq('id', id);
+      } else {
+        console.error('Failed to soft delete donation from Supabase:', error);
+        throw error;
       }
     }
   }
 
   /**
-   * Fetch all Expenses from Supabase with Smart Merge & Soft Delete Filtering
+   * Fetch all active Expenses directly from Supabase
    */
   static async getExpenses(): Promise<Expense[]> {
-    const deletedIds = new Set(StorageService.getDeletedIds());
-    const rawLocal = StorageService.getExpenses();
-    const local = rawLocal.filter((e) => e.is_active !== false && !deletedIds.has(e.id));
-
     if (!isSupabaseConfigured || !supabase) {
-      return local;
+      return [];
     }
 
     try {
@@ -204,127 +138,80 @@ export class DatabaseService {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) {
-        console.error('Error fetching expenses from Supabase, returning local cache:', error);
-        return local;
+      if (error || !data) {
+        console.error('Error fetching expenses from Supabase:', error);
+        return [];
       }
 
-      const cloudMap = new Map<string, Expense>();
-      if (data && data.length > 0) {
-        for (const item of data) {
-          if (item.is_active === false || deletedIds.has(item.id)) {
-            if (deletedIds.has(item.id)) {
-              supabase.from('expenses').update({ is_active: false }).eq('id', item.id).then(() => {
-                StorageService.removeDeletedId(item.id);
-              });
-            }
-            continue;
-          }
-
-          cloudMap.set(item.id, {
-            id: item.id,
-            expense_number: item.expense_number,
-            title: item.title,
-            category: item.category,
-            vendor_name: item.vendor_name || '',
-            vendor_phone: item.vendor_phone || '',
-            amount: Number(item.amount),
-            payment_mode: item.payment_mode,
-            bill_image: item.bill_image || '',
-            date: item.date,
-            notes: item.notes || '',
-            created_at: item.created_at || new Date().toISOString(),
-            updated_at: item.updated_at || item.created_at || new Date().toISOString(),
-            is_active: item.is_active ?? true,
-          });
-        }
-      }
-
-      const unSyncedLocal: Expense[] = [];
-      local.forEach((localItem) => {
-        if (!cloudMap.has(localItem.id)) {
-          cloudMap.set(localItem.id, localItem);
-          unSyncedLocal.push(localItem);
-        } else {
-          const cloudItem = cloudMap.get(localItem.id)!;
-          const localTime = new Date(localItem.updated_at || localItem.created_at).getTime();
-          const cloudTime = new Date(cloudItem.updated_at || cloudItem.created_at).getTime();
-
-          if (localTime > cloudTime) {
-            cloudMap.set(localItem.id, localItem);
-            unSyncedLocal.push(localItem);
-          }
-        }
-      });
-
-      if (unSyncedLocal.length > 0) {
-        this.syncLocalExpensesToSupabase(unSyncedLocal);
-      }
-
-      const merged = Array.from(cloudMap.values()).sort((a, b) => 
-        new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime()
-      );
-
-      StorageService.saveExpenses(merged);
-      return merged;
+      return data
+        .filter((item) => item.is_active !== false)
+        .map((item) => ({
+          id: item.id,
+          expense_number: item.expense_number,
+          title: item.title,
+          category: item.category,
+          vendor_name: item.vendor_name || '',
+          vendor_phone: item.vendor_phone || '',
+          amount: Number(item.amount),
+          payment_mode: item.payment_mode,
+          bill_image: item.bill_image || '',
+          date: item.date,
+          notes: item.notes || '',
+          created_at: item.created_at || new Date().toISOString(),
+          updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+          is_active: item.is_active ?? true,
+        }));
     } catch (err) {
-      console.error('Supabase getExpenses failed, returning local cache:', err);
-      return local;
+      console.error('Supabase getExpenses failed:', err);
+      return [];
     }
   }
 
   /**
-   * Save / Upsert an Expense record
+   * Save / Upsert an Expense directly to Supabase
    */
   static async saveExpense(expense: Expense): Promise<Expense> {
+    if (!this.isOnline()) {
+      throw new Error('OFFLINE_NO_INTERNET');
+    }
+
+    if (!isSupabaseConfigured || !supabase) {
+      throw new Error('SUPABASE_NOT_CONFIGURED');
+    }
+
     const updatedItem: Expense = {
       ...expense,
       is_active: expense.is_active ?? true,
       updated_at: new Date().toISOString(),
     };
 
-    const currentLocal = StorageService.getExpenses();
-    const existingIndex = currentLocal.findIndex((e) => e.id === updatedItem.id);
-    let updatedLocal: Expense[];
-    if (existingIndex >= 0) {
-      updatedLocal = [...currentLocal];
-      updatedLocal[existingIndex] = updatedItem;
-    } else {
-      updatedLocal = [updatedItem, ...currentLocal];
-    }
-    StorageService.saveExpenses(updatedLocal);
+    const payload: Record<string, any> = {
+      id: updatedItem.id,
+      expense_number: updatedItem.expense_number,
+      title: updatedItem.title,
+      category: updatedItem.category,
+      vendor_name: updatedItem.vendor_name || null,
+      vendor_phone: updatedItem.vendor_phone || null,
+      amount: updatedItem.amount,
+      payment_mode: updatedItem.payment_mode,
+      bill_image: updatedItem.bill_image || null,
+      date: updatedItem.date,
+      notes: updatedItem.notes || null,
+      is_active: updatedItem.is_active,
+      created_at: updatedItem.created_at,
+      updated_at: updatedItem.updated_at,
+    };
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const payload: Record<string, any> = {
-          id: updatedItem.id,
-          expense_number: updatedItem.expense_number,
-          title: updatedItem.title,
-          category: updatedItem.category,
-          vendor_name: updatedItem.vendor_name || null,
-          vendor_phone: updatedItem.vendor_phone || null,
-          amount: updatedItem.amount,
-          payment_mode: updatedItem.payment_mode,
-          bill_image: updatedItem.bill_image || null,
-          date: updatedItem.date,
-          notes: updatedItem.notes || null,
-          is_active: updatedItem.is_active,
-          created_at: updatedItem.created_at,
-          updated_at: updatedItem.updated_at,
-        };
-
-        const { error } = await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
-        if (error) {
-          if (error.code === '42703') {
-            delete payload.updated_at;
-            delete payload.is_active;
-            await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
-          } else {
-            console.error('Failed to upsert expense to Supabase:', error);
-          }
-        }
-      } catch (err) {
-        console.error('Supabase saveExpense error:', err);
+    const { error } = await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
+    if (error) {
+      if (error.code === '42703') {
+        delete payload.updated_at;
+        delete payload.is_active;
+        const retry = await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
+        if (retry.error) throw retry.error;
+      } else {
+        console.error('Failed to upsert expense to Supabase:', error);
+        throw error;
       }
     }
 
@@ -332,31 +219,26 @@ export class DatabaseService {
   }
 
   /**
-   * Soft Delete an Expense record
+   * Soft Delete an Expense record in Supabase
    */
   static async deleteExpense(id: string): Promise<void> {
-    StorageService.addDeletedId(id);
-    const currentLocal = StorageService.getExpenses();
-    const updatedLocal = currentLocal.filter((e) => e.id !== id);
-    StorageService.saveExpenses(updatedLocal);
+    if (!this.isOnline()) {
+      throw new Error('OFFLINE_NO_INTERNET');
+    }
 
-    if (isSupabaseConfigured && supabase) {
-      try {
-        const { error } = await supabase
-          .from('expenses')
-          .update({ is_active: false, updated_at: new Date().toISOString() })
-          .eq('id', id);
+    if (!isSupabaseConfigured || !supabase) return;
 
-        if (!error) {
-          StorageService.removeDeletedId(id);
-        } else if (error.code === '42703') {
-          await supabase.from('expenses').delete().eq('id', id);
-          StorageService.removeDeletedId(id);
-        } else {
-          console.error('Failed to delete expense from Supabase:', error);
-        }
-      } catch (err) {
-        console.error('Supabase deleteExpense error:', err);
+    const { error } = await supabase
+      .from('expenses')
+      .update({ is_active: false, updated_at: new Date().toISOString() })
+      .eq('id', id);
+
+    if (error) {
+      if (error.code === '42703') {
+        await supabase.from('expenses').delete().eq('id', id);
+      } else {
+        console.error('Failed to delete expense from Supabase:', error);
+        throw error;
       }
     }
   }
@@ -468,54 +350,7 @@ export class DatabaseService {
   }
 
   /**
-   * Helper to seed local sample items to Supabase if newly created
-   */
-  private static async syncLocalDonationsToSupabase(donations: Donation[]) {
-    if (!isSupabaseConfigured || !supabase) return;
-    try {
-      const payload = donations.map((d) => ({
-        id: d.id,
-        receipt_number: d.receipt_number,
-        donor_name: d.donor_name,
-        phone: d.phone || null,
-        amount: d.amount,
-        payment_mode: d.payment_mode,
-        date: d.date,
-        notes: d.notes || null,
-        created_at: d.created_at,
-      }));
-      await supabase.from('donations').upsert(payload, { onConflict: 'id' });
-    } catch (err) {
-      console.error('Failed syncing local donations to Supabase:', err);
-    }
-  }
-
-  private static async syncLocalExpensesToSupabase(expenses: Expense[]) {
-    if (!isSupabaseConfigured || !supabase) return;
-    try {
-      const payload = expenses.map((e) => ({
-        id: e.id,
-        expense_number: e.expense_number,
-        title: e.title,
-        category: e.category,
-        vendor_name: e.vendor_name || null,
-        vendor_phone: e.vendor_phone || null,
-        amount: e.amount,
-        payment_mode: e.payment_mode,
-        bill_image: e.bill_image || null,
-        date: e.date,
-        notes: e.notes || null,
-        created_at: e.created_at,
-      }));
-      await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
-    } catch (err) {
-      console.error('Failed syncing local expenses to Supabase:', err);
-    }
-  }
-
-  /**
    * Upload an Expense Bill photo to Supabase Storage Bucket ('expense-bills')
-   * Returns public CDN URL on success, or fallback Base64 data URL
    */
   static async uploadBillImage(file: File): Promise<string> {
     if (!isSupabaseConfigured || !supabase) {

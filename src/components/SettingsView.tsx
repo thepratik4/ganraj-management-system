@@ -3,24 +3,21 @@ import {
   Settings as SettingsIcon,
   Save,
   Database,
-  RefreshCw,
-  Trash2,
   CheckCircle2,
   AlertCircle,
   FileSpreadsheet,
-  Upload,
   Zap,
 } from 'lucide-react';
-import { MandalSettings } from '../types';
+import { MandalSettings, Donation, Expense } from '../types';
 import { StorageService } from '../utils/storage';
 import { isSupabaseConfigured } from '../lib/supabase';
 
 interface SettingsViewProps {
   settings: MandalSettings;
+  donations: Donation[];
+  expenses: Expense[];
   onSaveSettings: (newSettings: MandalSettings) => void;
   onReloadData: () => void;
-  onConfirmResetSample: () => void;
-  onOpenSupabaseModal?: () => void;
 }
 
 const LOGO_PRESETS = [
@@ -36,10 +33,9 @@ const LOGO_PRESETS = [
 
 export const SettingsView: React.FC<SettingsViewProps> = ({
   settings,
+  donations,
+  expenses,
   onSaveSettings,
-  onReloadData,
-  onConfirmResetSample,
-  onOpenSupabaseModal,
 }) => {
   const [mandalName, setMandalName] = useState(settings.mandal_name);
   const [logo, setLogo] = useState(settings.logo);
@@ -65,9 +61,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 
   const handleExportJSON = () => {
     const data = {
-      settings: StorageService.getSettings(),
-      donations: StorageService.getDonations(),
-      expenses: StorageService.getExpenses(),
+      settings,
+      donations,
+      expenses,
       exported_at: new Date().toISOString(),
     };
 
@@ -84,7 +80,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   };
 
   const handleExportCSV = () => {
-    const csvContent = StorageService.exportToCSV();
+    const csvContent = StorageService.exportToCSV(donations, expenses);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -93,30 +89,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
-  };
-
-  const handleImportJSON = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const json = JSON.parse(event.target?.result as string);
-        if (json.donations && json.expenses) {
-          StorageService.saveDonations(json.donations);
-          StorageService.saveExpenses(json.expenses);
-          if (json.settings) StorageService.saveSettings(json.settings);
-          onReloadData();
-          alert('Database restored successfully!');
-        } else {
-          alert('Invalid backup file format');
-        }
-      } catch {
-        alert('Failed to parse backup JSON file');
-      }
-    };
-    reader.readAsText(file);
   };
 
   return (
@@ -267,13 +239,13 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                     : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
                 }`}
               >
-                {isSupabaseConfigured ? 'CONNECTED' : 'LOCAL CACHE MODE'}
+                {isSupabaseConfigured ? 'CONNECTED' : 'NOT CONNECTED'}
               </span>
             </h3>
             <p className="text-xs text-slate-500">
               {isSupabaseConfigured
-                ? 'Cloud Database Active — All records sync in real-time across devices'
-                : 'Local Offline Mode — Data saved locally in browser storage'}
+                ? 'Supabase Direct Cloud Database Active — Single Source of Truth for all devices'
+                : 'Connection Required — Please configure VITE_SUPABASE_URL in .env.local'}
             </p>
           </div>
         </div>
@@ -287,10 +259,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
           <div>
             <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-              Database Management & Backup
+              Database Backup & Export
             </h3>
             <p className="text-xs text-slate-500">
-              Export database, restore from backup, or load sample records
+              Download CSV Excel report or export full JSON database backup
             </p>
           </div>
         </div>
@@ -318,33 +290,6 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             <div className="text-left">
               <span className="block font-black">Backup Database (JSON)</span>
               <span className="text-[10px] opacity-80">Complete system backup file</span>
-            </div>
-          </button>
-
-          {/* Import JSON */}
-          <label className="p-3 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700/60 text-slate-800 dark:text-slate-200 text-xs font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center gap-2.5 cursor-pointer">
-            <Upload className="w-5 h-5 text-sky-600" />
-            <div className="text-left">
-              <span className="block font-black">Restore from Backup</span>
-              <span className="text-[10px] text-slate-400">Upload JSON backup file</span>
-            </div>
-            <input
-              type="file"
-              accept=".json"
-              onChange={handleImportJSON}
-              className="hidden"
-            />
-          </label>
-
-          {/* Reset to Sample Data */}
-          <button
-            onClick={onConfirmResetSample}
-            className="p-3 rounded-2xl bg-sky-50 dark:bg-sky-950/40 border border-sky-200 dark:border-sky-800/60 text-sky-800 dark:text-sky-200 text-xs font-bold hover:bg-sky-100 dark:hover:bg-sky-950/80 transition-all flex items-center gap-2.5"
-          >
-            <RefreshCw className="w-5 h-5 text-sky-600" />
-            <div className="text-left">
-              <span className="block font-black">Load Sample Data</span>
-              <span className="text-[10px] opacity-80">Reset to Ganeshotsav sample records</span>
             </div>
           </button>
         </div>

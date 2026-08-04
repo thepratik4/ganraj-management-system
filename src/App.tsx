@@ -190,42 +190,34 @@ export default function App() {
 
   // Save Donation Handler
   const handleSaveDonation = async (savedDonation: Donation) => {
-    // Optimistic UI update
-    let updated: Donation[];
-    const exists = donations.some((d) => d.id === savedDonation.id);
-
-    if (exists) {
-      updated = donations.map((d) => (d.id === savedDonation.id ? savedDonation : d));
-    } else {
-      updated = [savedDonation, ...donations];
+    try {
+      await DatabaseService.saveDonation(savedDonation);
+      setDonations((prev) => {
+        const exists = prev.some((d) => d.id === savedDonation.id);
+        return exists ? prev.map((d) => (d.id === savedDonation.id ? savedDonation : d)) : [savedDonation, ...prev];
+      });
+      setIsDonationModalOpen(false);
+      setActiveReceiptDonation(savedDonation);
+      setIsReceiptModalOpen(true);
+    } catch (err) {
+      console.error('Failed to save donation:', err);
+      alert('⚠️ Unable to save donation. Please ensure your internet connection is active.');
     }
-    setDonations(updated);
-    setIsDonationModalOpen(false);
-
-    // Save to Database / Supabase
-    await DatabaseService.saveDonation(savedDonation);
-
-    // Automatically open receipt modal after saving donation
-    setActiveReceiptDonation(savedDonation);
-    setIsReceiptModalOpen(true);
   };
 
   // Save Expense Handler
   const handleSaveExpense = async (savedExpense: Expense) => {
-    // Optimistic UI update
-    let updated: Expense[];
-    const exists = expenses.some((e) => e.id === savedExpense.id);
-
-    if (exists) {
-      updated = expenses.map((e) => (e.id === savedExpense.id ? savedExpense : e));
-    } else {
-      updated = [savedExpense, ...expenses];
+    try {
+      await DatabaseService.saveExpense(savedExpense);
+      setExpenses((prev) => {
+        const exists = prev.some((e) => e.id === savedExpense.id);
+        return exists ? prev.map((e) => (e.id === savedExpense.id ? savedExpense : e)) : [savedExpense, ...prev];
+      });
+      setIsExpenseModalOpen(false);
+    } catch (err) {
+      console.error('Failed to save expense:', err);
+      alert('⚠️ Unable to save expense. Please ensure your internet connection is active.');
     }
-    setExpenses(updated);
-    setIsExpenseModalOpen(false);
-
-    // Save to Database / Supabase
-    await DatabaseService.saveExpense(savedExpense);
   };
 
   // Delete Transaction with Safety Confirmation
@@ -237,37 +229,31 @@ export default function App() {
       confirmLabel: 'Delete Record',
       isDanger: true,
       onConfirm: async () => {
-        if (tx.type === 'donation') {
-          const updated = donations.filter((d) => d.id !== tx.id);
-          setDonations(updated);
-          await DatabaseService.deleteDonation(tx.id);
-        } else {
-          const updated = expenses.filter((e) => e.id !== tx.id);
-          setExpenses(updated);
-          await DatabaseService.deleteExpense(tx.id);
+        try {
+          if (tx.type === 'donation') {
+            await DatabaseService.deleteDonation(tx.id);
+            setDonations((prev) => prev.filter((d) => d.id !== tx.id));
+          } else {
+            await DatabaseService.deleteExpense(tx.id);
+            setExpenses((prev) => prev.filter((e) => e.id !== tx.id));
+          }
+        } catch (err) {
+          console.error('Failed to delete transaction:', err);
+          alert('⚠️ Could not delete record. Please check your internet connection.');
         }
       },
     });
   };
 
-  // Edit Transaction Trigger (Requires Password 2020)
+  // Edit Transaction Trigger
   const handleEditTransaction = (tx: Transaction) => {
-    setConfirmModal({
-      isOpen: true,
-      title: `Edit ${tx.type === 'donation' ? 'Donation' : 'Expense'} Record?`,
-      message: `Are you sure you want to edit ${tx.number} (${tx.titleOrName})? Please enter password to proceed.`,
-      confirmLabel: 'Edit Record',
-      isDanger: false,
-      onConfirm: () => {
-        if (tx.type === 'donation') {
-          setEditingDonation(tx.originalItem as Donation);
-          setIsDonationModalOpen(true);
-        } else {
-          setEditingExpense(tx.originalItem as Expense);
-          setIsExpenseModalOpen(true);
-        }
-      },
-    });
+    if (tx.type === 'donation') {
+      setEditingDonation(tx.originalItem as Donation);
+      setIsDonationModalOpen(true);
+    } else {
+      setEditingExpense(tx.originalItem as Expense);
+      setIsExpenseModalOpen(true);
+    }
   };
 
   // Save Settings
@@ -276,23 +262,9 @@ export default function App() {
     await DatabaseService.saveSettings(newSettings);
   };
 
-  // Reset to Sample Data
-  const handleConfirmResetSample = () => {
-    setConfirmModal({
-      isOpen: true,
-      title: 'Load Sample Ganeshotsav Data?',
-      message: 'This will reset current data to sample donations and expenses.',
-      confirmLabel: 'Load Sample Data',
-      onConfirm: async () => {
-        StorageService.resetToSampleData();
-        await loadAllData();
-      },
-    });
-  };
-
   // Quick Export CSV
   const handleQuickBackup = () => {
-    const csvContent = StorageService.exportToCSV();
+    const csvContent = StorageService.exportToCSV(donations, expenses);
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -318,7 +290,7 @@ export default function App() {
         {isLoading ? (
           <div className="flex flex-col items-center justify-center py-20 space-y-3">
             <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs font-bold text-slate-500">Connecting to Database...</p>
+            <p className="text-xs font-bold text-slate-500">Connecting to Supabase Database...</p>
           </div>
         ) : (
           <>
@@ -433,9 +405,10 @@ export default function App() {
             {activeTab === 'settings' && (
               <SettingsView
                 settings={settings}
+                donations={donations}
+                expenses={expenses}
                 onSaveSettings={handleSaveSettings}
                 onReloadData={loadAllData}
-                onConfirmResetSample={handleConfirmResetSample}
               />
             )}
           </>
@@ -449,6 +422,7 @@ export default function App() {
       <DonationModal
         isOpen={isDonationModalOpen}
         editingDonation={editingDonation}
+        existingDonations={donations}
         onClose={() => setIsDonationModalOpen(false)}
         onSave={handleSaveDonation}
       />
@@ -456,6 +430,7 @@ export default function App() {
       <ExpenseModal
         isOpen={isExpenseModalOpen}
         editingExpense={editingExpense}
+        existingExpenses={expenses}
         onClose={() => setIsExpenseModalOpen(false)}
         onSave={handleSaveExpense}
       />
