@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS public.donations (
     payment_mode TEXT NOT NULL DEFAULT 'Cash',
     date TEXT NOT NULL,
     notes TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
@@ -27,6 +28,7 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     bill_image TEXT,
     date TEXT NOT NULL,
     notes TEXT,
+    is_active BOOLEAN NOT NULL DEFAULT true,
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );

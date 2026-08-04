@@ -4,12 +4,12 @@ import { StorageService, DEFAULT_SETTINGS } from '../utils/storage';
 
 export class DatabaseService {
   /**
-   * Fetch all Donations from Supabase with Smart Merge & Conflict Resolution
+   * Fetch all Donations from Supabase with Smart Merge & Soft Delete Filtering
    */
   static async getDonations(): Promise<Donation[]> {
     const deletedIds = new Set(StorageService.getDeletedIds());
     const rawLocal = StorageService.getDonations();
-    const local = rawLocal.filter((d) => !deletedIds.has(d.id));
+    const local = rawLocal.filter((d) => d.is_active !== false && !deletedIds.has(d.id));
 
     if (!isSupabaseConfigured || !supabase) {
       return local;
@@ -29,11 +29,13 @@ export class DatabaseService {
       const cloudMap = new Map<string, Donation>();
       if (data && data.length > 0) {
         for (const item of data) {
-          // If deleted locally while offline, delete from cloud as well
-          if (deletedIds.has(item.id)) {
-            supabase.from('donations').delete().eq('id', item.id).then(() => {
-              StorageService.removeDeletedId(item.id);
-            });
+          // If marked as soft deleted in database or local deleted list, skip active display
+          if (item.is_active === false || deletedIds.has(item.id)) {
+            if (deletedIds.has(item.id)) {
+              supabase.from('donations').update({ is_active: false }).eq('id', item.id).then(() => {
+                StorageService.removeDeletedId(item.id);
+              });
+            }
             continue;
           }
 
@@ -48,6 +50,7 @@ export class DatabaseService {
             notes: item.notes || '',
             created_at: item.created_at || new Date().toISOString(),
             updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+            is_active: item.is_active ?? true,
           });
         }
       }
@@ -98,6 +101,7 @@ export class DatabaseService {
   static async saveDonation(donation: Donation): Promise<Donation> {
     const updatedItem: Donation = {
       ...donation,
+      is_active: donation.is_active ?? true,
       updated_at: new Date().toISOString(),
     };
 
@@ -125,6 +129,7 @@ export class DatabaseService {
           payment_mode: updatedItem.payment_mode,
           date: updatedItem.date,
           notes: updatedItem.notes || null,
+          is_active: updatedItem.is_active,
           created_at: updatedItem.created_at,
           updated_at: updatedItem.updated_at,
         };
@@ -133,6 +138,7 @@ export class DatabaseService {
         if (error) {
           if (error.code === '42703') {
             delete payload.updated_at;
+            delete payload.is_active;
             await supabase.from('donations').upsert(payload, { onConflict: 'id' });
           } else {
             console.error('Failed to upsert donation to Supabase:', error);
@@ -147,21 +153,32 @@ export class DatabaseService {
   }
 
   /**
-   * Delete a Donation record
+   * Soft Delete a Donation record (sets is_active = false in DB so data is never permanently lost)
    */
   static async deleteDonation(id: string): Promise<void> {
     StorageService.addDeletedId(id);
+
+    // Soft delete locally
     const currentLocal = StorageService.getDonations();
     const updatedLocal = currentLocal.filter((d) => d.id !== id);
     StorageService.saveDonations(updatedLocal);
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('donations').delete().eq('id', id);
+        // Soft delete in Supabase cloud database
+        const { error } = await supabase
+          .from('donations')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('id', id);
+
         if (!error) {
           StorageService.removeDeletedId(id);
+        } else if (error.code === '42703') {
+          // If is_active column doesn't exist yet, fallback to hard delete
+          await supabase.from('donations').delete().eq('id', id);
+          StorageService.removeDeletedId(id);
         } else {
-          console.error('Failed to delete donation from Supabase:', error);
+          console.error('Failed to soft delete donation from Supabase:', error);
         }
       } catch (err) {
         console.error('Supabase deleteDonation error:', err);
@@ -170,12 +187,12 @@ export class DatabaseService {
   }
 
   /**
-   * Fetch all Expenses from Supabase with Smart Merge & Conflict Resolution
+   * Fetch all Expenses from Supabase with Smart Merge & Soft Delete Filtering
    */
   static async getExpenses(): Promise<Expense[]> {
     const deletedIds = new Set(StorageService.getDeletedIds());
     const rawLocal = StorageService.getExpenses();
-    const local = rawLocal.filter((e) => !deletedIds.has(e.id));
+    const local = rawLocal.filter((e) => e.is_active !== false && !deletedIds.has(e.id));
 
     if (!isSupabaseConfigured || !supabase) {
       return local;
@@ -195,10 +212,12 @@ export class DatabaseService {
       const cloudMap = new Map<string, Expense>();
       if (data && data.length > 0) {
         for (const item of data) {
-          if (deletedIds.has(item.id)) {
-            supabase.from('expenses').delete().eq('id', item.id).then(() => {
-              StorageService.removeDeletedId(item.id);
-            });
+          if (item.is_active === false || deletedIds.has(item.id)) {
+            if (deletedIds.has(item.id)) {
+              supabase.from('expenses').update({ is_active: false }).eq('id', item.id).then(() => {
+                StorageService.removeDeletedId(item.id);
+              });
+            }
             continue;
           }
 
@@ -216,6 +235,7 @@ export class DatabaseService {
             notes: item.notes || '',
             created_at: item.created_at || new Date().toISOString(),
             updated_at: item.updated_at || item.created_at || new Date().toISOString(),
+            is_active: item.is_active ?? true,
           });
         }
       }
@@ -259,6 +279,7 @@ export class DatabaseService {
   static async saveExpense(expense: Expense): Promise<Expense> {
     const updatedItem: Expense = {
       ...expense,
+      is_active: expense.is_active ?? true,
       updated_at: new Date().toISOString(),
     };
 
@@ -287,6 +308,7 @@ export class DatabaseService {
           bill_image: updatedItem.bill_image || null,
           date: updatedItem.date,
           notes: updatedItem.notes || null,
+          is_active: updatedItem.is_active,
           created_at: updatedItem.created_at,
           updated_at: updatedItem.updated_at,
         };
@@ -295,6 +317,7 @@ export class DatabaseService {
         if (error) {
           if (error.code === '42703') {
             delete payload.updated_at;
+            delete payload.is_active;
             await supabase.from('expenses').upsert(payload, { onConflict: 'id' });
           } else {
             console.error('Failed to upsert expense to Supabase:', error);
@@ -309,7 +332,7 @@ export class DatabaseService {
   }
 
   /**
-   * Delete an Expense record
+   * Soft Delete an Expense record
    */
   static async deleteExpense(id: string): Promise<void> {
     StorageService.addDeletedId(id);
@@ -319,8 +342,15 @@ export class DatabaseService {
 
     if (isSupabaseConfigured && supabase) {
       try {
-        const { error } = await supabase.from('expenses').delete().eq('id', id);
+        const { error } = await supabase
+          .from('expenses')
+          .update({ is_active: false, updated_at: new Date().toISOString() })
+          .eq('id', id);
+
         if (!error) {
+          StorageService.removeDeletedId(id);
+        } else if (error.code === '42703') {
+          await supabase.from('expenses').delete().eq('id', id);
           StorageService.removeDeletedId(id);
         } else {
           console.error('Failed to delete expense from Supabase:', error);

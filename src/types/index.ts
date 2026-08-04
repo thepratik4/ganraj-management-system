@@ -26,6 +26,7 @@ export interface Donation {
   notes?: string;
   created_at: string;
   updated_at?: string;
+  is_active?: boolean;
 }
 
 export interface Expense {
@@ -42,6 +43,7 @@ export interface Expense {
   notes?: string;
   created_at: string;
   updated_at?: string;
+  is_active?: boolean;
 }
 
 export type TransactionType = 'donation' | 'expense';
