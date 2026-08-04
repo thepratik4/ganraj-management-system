@@ -245,7 +245,7 @@ export default function App() {
     });
   };
 
-  // Edit Transaction Trigger (Requires Password 1010)
+  // Edit Transaction Trigger (Requires Password 2020)
   const handleEditTransaction = (tx: Transaction) => {
     setConfirmModal({
       isOpen: true,
