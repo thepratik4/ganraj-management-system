@@ -82,7 +82,8 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
       setPhoneError('');
       setNetworkError('');
     }
-  }, [isOpen, editingExpense, existingExpenses]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingExpense]);
 
   if (!isOpen) return null;
 

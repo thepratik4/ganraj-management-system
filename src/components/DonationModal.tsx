@@ -56,7 +56,8 @@ export const DonationModal: React.FC<DonationModalProps> = ({
       setAmountError('');
       setNetworkError('');
     }
-  }, [isOpen, editingDonation, existingDonations]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, editingDonation]);
 
   if (!isOpen) return null;
 
