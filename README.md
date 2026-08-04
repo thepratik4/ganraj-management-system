@@ -1,20 +1,30 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Ganraj Mitra Mandal - Vargani & Expense Management System
 
-# Run and deploy your AI Studio app
+A modern, mobile-first web application designed for **Ganraj Mitra Mandal** to manage Ganeshotsav donations (vargani), generate high-resolution digital receipts, track festival expenses, and sync records seamlessly with Supabase.
 
-This contains everything you need to run your app locally.
+## Features
 
-View your app in AI Studio: https://ai.studio/apps/5f49c99b-4121-4f01-af3c-50f2544dfacc
+- 🪔 **Digital Donation Receipt Generator**: Generates high-res PNG receipts and landscape PDF receipts with WhatsApp image sharing.
+- 💰 **Vargani (Donation) Management**: Collect, view, filter, search, and export donor records.
+- 📊 **Expense Tracker & Financial Statements**: Record festival expenses with bill image uploads and automatic balance calculation.
+- ☁️ **Supabase Cloud Sync**: Real-time data sync with local offline fallback.
 
-## Run Locally
+## Running Locally
 
-**Prerequisites:**  Node.js
+1. **Install Dependencies:**
+   ```bash
+   npm install
+   ```
 
+2. **Configure Environment Variables:**
+   Create a `.env.local` file with your Supabase credentials:
+   ```env
+   VITE_SUPABASE_URL=https://your-project-id.supabase.co
+   VITE_SUPABASE_ANON_KEY=your-anon-key-here
+   ```
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+3. **Start Development Server:**
+   ```bash
+   npm run dev
+   ```
+

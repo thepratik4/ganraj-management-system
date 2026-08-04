@@ -25,6 +25,7 @@ export interface Donation {
   date: string; // YYYY-MM-DD
   notes?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export interface Expense {
@@ -40,6 +41,7 @@ export interface Expense {
   date: string; // YYYY-MM-DD
   notes?: string;
   created_at: string;
+  updated_at?: string;
 }
 
 export type TransactionType = 'donation' | 'expense';

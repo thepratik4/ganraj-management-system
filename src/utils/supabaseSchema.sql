@@ -10,7 +10,8 @@ CREATE TABLE IF NOT EXISTS public.donations (
     payment_mode TEXT NOT NULL DEFAULT 'Cash',
     date TEXT NOT NULL,
     notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 2. Create Expenses Table
@@ -26,7 +27,8 @@ CREATE TABLE IF NOT EXISTS public.expenses (
     bill_image TEXT,
     date TEXT NOT NULL,
     notes TEXT,
-    created_at TIMESTAMPTZ DEFAULT NOW()
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
 -- 3. Create Mandal Settings Table

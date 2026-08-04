@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
   DONATIONS: 'gmm_donations_v1',
   EXPENSES: 'gmm_expenses_v1',
   SETTINGS: 'gmm_settings_v1',
+  DELETED_IDS: 'gmm_deleted_ids_v1',
 };
 
 export const DEFAULT_SETTINGS: MandalSettings = {
@@ -162,6 +163,27 @@ export class StorageService {
 
   static saveExpenses(expenses: Expense[]): void {
     localStorage.setItem(STORAGE_KEYS.EXPENSES, JSON.stringify(expenses));
+  }
+
+  static getDeletedIds(): string[] {
+    try {
+      const data = localStorage.getItem(STORAGE_KEYS.DELETED_IDS);
+      return data ? JSON.parse(data) : [];
+    } catch {
+      return [];
+    }
+  }
+
+  static addDeletedId(id: string): void {
+    const ids = this.getDeletedIds();
+    if (!ids.includes(id)) {
+      localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify([...ids, id]));
+    }
+  }
+
+  static removeDeletedId(id: string): void {
+    const ids = this.getDeletedIds();
+    localStorage.setItem(STORAGE_KEYS.DELETED_IDS, JSON.stringify(ids.filter((i) => i !== id)));
   }
 
   /**
