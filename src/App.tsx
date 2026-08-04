@@ -245,15 +245,24 @@ export default function App() {
     });
   };
 
-  // Edit Transaction Trigger
+  // Edit Transaction Trigger (Requires Password 1010)
   const handleEditTransaction = (tx: Transaction) => {
-    if (tx.type === 'donation') {
-      setEditingDonation(tx.originalItem as Donation);
-      setIsDonationModalOpen(true);
-    } else {
-      setEditingExpense(tx.originalItem as Expense);
-      setIsExpenseModalOpen(true);
-    }
+    setConfirmModal({
+      isOpen: true,
+      title: `Edit ${tx.type === 'donation' ? 'Donation' : 'Expense'} Record?`,
+      message: `Are you sure you want to edit ${tx.number} (${tx.titleOrName})? Please enter password to proceed.`,
+      confirmLabel: 'Edit Record',
+      isDanger: false,
+      onConfirm: () => {
+        if (tx.type === 'donation') {
+          setEditingDonation(tx.originalItem as Donation);
+          setIsDonationModalOpen(true);
+        } else {
+          setEditingExpense(tx.originalItem as Expense);
+          setIsExpenseModalOpen(true);
+        }
+      },
+    });
   };
 
   // Save Settings
