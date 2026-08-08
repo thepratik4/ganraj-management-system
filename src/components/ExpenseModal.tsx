@@ -37,7 +37,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [vendorName, setVendorName] = useState('');
   const [vendorPhone, setVendorPhone] = useState('');
   const [amount, setAmount] = useState<string>('');
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [billImage, setBillImage] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -49,6 +49,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [amountError, setAmountError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [networkError, setNetworkError] = useState('');
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.currentTarget;
+    setTimeout(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 150);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +78,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setVendorName('');
         setVendorPhone('');
         setAmount('');
-        setPaymentMode('Cash');
+        setPaymentMode('Online');
         setDate(new Date().toISOString().split('T')[0]);
         setBillImage('');
         setNotes('');
@@ -199,20 +206,20 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative"
-        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)', maxHeight: '92vh', overflowY: 'auto' }}
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-[90vh]"
+        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)' }}
       >
         {/* Drag handle (mobile) */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--color-border)' }} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div className="flex items-center justify-between px-5 pt-3 pb-4 shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -242,7 +249,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 flex-1 overflow-y-auto pb-10 sm:pb-6">
           {/* TITLE */}
           <div>
             <label style={labelStyle}>Expense Title <span style={{ color: 'var(--color-expense)' }}>*</span></label>
@@ -252,7 +259,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Stage Decoration & Floral Backdrops"
               style={inputStyle}
-              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
               onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
             {titleError && (
@@ -280,7 +287,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 style={{ ...inputStyle, paddingLeft: '36px', fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-serif)' }}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -300,7 +307,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -310,6 +317,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 value={category}
                 onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
                 style={{ ...inputStyle, cursor: 'pointer' }}
+                onFocus={e => handleInputFocus(e)}
               >
                 {CATEGORIES.map((cat) => (
                   <option key={cat} value={cat}>{cat}</option>
@@ -352,7 +360,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 onChange={(e) => setVendorName(e.target.value)}
                 placeholder="e.g. Shivaji Decorators"
                 style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -365,7 +373,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
                 onChange={(e) => setVendorPhone(e.target.value)}
                 placeholder="9822998877"
                 style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
               {phoneError && (
@@ -422,7 +430,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Paid advance, remaining due on Day 5"
               style={inputStyle}
-              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
               onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>

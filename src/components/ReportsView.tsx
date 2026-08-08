@@ -8,6 +8,8 @@ import {
   Wallet,
   Target,
   ArrowUpRight,
+  Banknote,
+  QrCode,
 } from 'lucide-react';
 import {
   BarChart,
@@ -203,10 +205,14 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
             </p>
           </div>
         </div>
-        <div className="text-right">
-          <p className="section-label mb-0.5">Cash Bal</p>
+        <div className="text-right flex flex-col items-end">
+          <p className="section-label mb-0.5 flex items-center gap-1">
+            <Banknote className="w-3 h-3" /> Cash Bal
+          </p>
           <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.cashBalance)}</p>
-          <p className="section-label mt-1 mb-0.5">Online Bal</p>
+          <p className="section-label mt-1 mb-0.5 flex items-center gap-1">
+            <QrCode className="w-3 h-3" /> Online Bal
+          </p>
           <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.onlineBalance)}</p>
         </div>
       </div>
@@ -339,8 +345,16 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
                 <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
                   <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Category</th>
                   <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Count</th>
-                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Cash</th>
-                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Online</th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">
+                    <span className="inline-flex items-center gap-1">
+                      <Banknote className="w-3 h-3" /> Cash
+                    </span>
+                  </th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">
+                    <span className="inline-flex items-center gap-1">
+                      <QrCode className="w-3 h-3" /> Online
+                    </span>
+                  </th>
                   <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px] text-right">Total</th>
                 </tr>
               </thead>

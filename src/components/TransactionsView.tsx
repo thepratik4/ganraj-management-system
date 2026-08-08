@@ -166,7 +166,11 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                   borderColor: filterMode === m ? 'var(--color-primary)' : 'var(--color-border)',
                 }}
               >
-                {m === 'all' ? 'All Modes' : m}
+                <span className="inline-flex items-center gap-1">
+                  {m === 'Cash' && <Banknote className="w-3 h-3" />}
+                  {m === 'Online' && <QrCode className="w-3 h-3" />}
+                  {m === 'all' ? 'All Modes' : m}
+                </span>
               </button>
             ))}
           </div>

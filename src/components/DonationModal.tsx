@@ -23,7 +23,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   const [donorName, setDonorName] = useState('');
   const [phone, setPhone] = useState('');
   const [amount, setAmount] = useState<string>('');
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [notes, setNotes] = useState('');
   const [receiptNumber, setReceiptNumber] = useState('');
@@ -31,6 +31,13 @@ export const DonationModal: React.FC<DonationModalProps> = ({
   const [nameError, setNameError] = useState('');
   const [amountError, setAmountError] = useState('');
   const [networkError, setNetworkError] = useState('');
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    const target = e.currentTarget;
+    setTimeout(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 150);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -46,7 +53,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
         setDonorName('');
         setPhone('');
         setAmount('');
-        setPaymentMode('Cash');
+        setPaymentMode('Online');
         setDate(new Date().toISOString().split('T')[0]);
         setNotes('');
         setReceiptNumber(StorageService.getNextReceiptNumber(existingDonations));
@@ -155,20 +162,20 @@ export const DonationModal: React.FC<DonationModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden"
       style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
     >
       <div
-        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative overflow-hidden"
-        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)', maxHeight: '90vh', overflowY: 'auto' }}
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-[90vh]"
+        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)' }}
       >
         {/* Drag handle (mobile) */}
-        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
           <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--color-border)' }} />
         </div>
 
         {/* Header */}
-        <div className="flex items-center justify-between px-5 pt-4 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+        <div className="flex items-center justify-between px-5 pt-3 pb-4 shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
           <div className="flex items-center gap-3">
             <div
               className="w-9 h-9 rounded-full flex items-center justify-center"
@@ -198,7 +205,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 flex-1 overflow-y-auto pb-10 sm:pb-6">
           {/* NAME */}
           <div>
             <label style={labelStyle}>Name / Origin <span style={{ color: 'var(--color-expense)' }}>*</span></label>
@@ -208,7 +215,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
               onChange={(e) => setDonorName(e.target.value)}
               placeholder="e.g. Ramesh Patel"
               style={inputStyle}
-              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; handleInputFocus(e); }}
               onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
             />
             {nameError && (
@@ -236,7 +243,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                 onChange={(e) => setAmount(e.target.value)}
                 placeholder="0.00"
                 style={{ ...inputStyle, paddingLeft: '36px', fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-serif)' }}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
               />
             </div>
@@ -256,7 +263,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 style={inputStyle}
-                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                 onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
@@ -270,7 +277,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
                   style={{ ...inputStyle, paddingLeft: '40px' }}
-                  onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
                   onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
@@ -315,7 +322,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
               onChange={(e) => setNotes(e.target.value)}
               placeholder="e.g. Aarti sponsorship"
               style={inputStyle}
-              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
               onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>

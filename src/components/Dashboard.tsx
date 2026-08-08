@@ -142,14 +142,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
         {/* Cash / Online split */}
         <div className="flex justify-center gap-6 mt-4 pt-4" style={{ borderTop: '1px solid var(--color-border)' }}>
           <div className="text-center">
-            <p className="section-label mb-0.5">Cash Balance</p>
+            <p className="section-label mb-0.5 flex items-center justify-center gap-1">
+              <Banknote className="w-3.5 h-3.5 opacity-70" />
+              Cash Balance
+            </p>
             <p className="text-base font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}>
               {formatINR(summary.cashBalance)}
             </p>
           </div>
           <div style={{ width: '1px', backgroundColor: 'var(--color-border)' }} />
           <div className="text-center">
-            <p className="section-label mb-0.5">Online Balance</p>
+            <p className="section-label mb-0.5 flex items-center justify-center gap-1">
+              <QrCode className="w-3.5 h-3.5 opacity-70" />
+              Online Balance
+            </p>
             <p className="text-base font-bold" style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}>
               {formatINR(summary.onlineBalance)}
             </p>
@@ -218,11 +224,17 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="flex justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
             <div>
-              <p className="section-label mb-0.5">CASH</p>
+              <p className="section-label mb-0.5 flex items-center gap-1">
+                <Banknote className="w-3 h-3" />
+                CASH
+              </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.cashCollection)}</p>
             </div>
-            <div className="text-right">
-              <p className="section-label mb-0.5">ONLINE</p>
+            <div className="text-right flex flex-col items-end">
+              <p className="section-label mb-0.5 flex items-center gap-1">
+                <QrCode className="w-3 h-3" />
+                ONLINE
+              </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.onlineCollection)}</p>
             </div>
           </div>
@@ -262,48 +274,20 @@ export const Dashboard: React.FC<DashboardProps> = ({
 
           <div className="flex justify-between mt-3 pt-3" style={{ borderTop: '1px solid var(--color-border)' }}>
             <div>
-              <p className="section-label mb-0.5">CASH</p>
+              <p className="section-label mb-0.5 flex items-center gap-1">
+                <Banknote className="w-3 h-3" />
+                CASH
+              </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.cashExpenses)}</p>
             </div>
-            <div className="text-right">
-              <p className="section-label mb-0.5">ONLINE</p>
+            <div className="text-right flex flex-col items-end">
+              <p className="section-label mb-0.5 flex items-center gap-1">
+                <QrCode className="w-3 h-3" />
+                ONLINE
+              </p>
               <p className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.onlineExpenses)}</p>
             </div>
           </div>
-        </div>
-      </div>
-
-      {/* ── Payment Methods ───────────────────────────────── */}
-      <div
-        className="rounded-2xl p-4"
-        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
-      >
-        <p className="text-sm font-bold mb-3" style={{ color: 'var(--color-text)' }}>Payment Methods</p>
-
-        {/* Online row */}
-        <div className="flex items-center justify-between py-2.5" style={{ borderBottom: '1px solid var(--color-border)' }}>
-          <div className="flex items-center gap-2">
-            <QrCode className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-              Online ({onlinePct}%)
-            </span>
-          </div>
-          <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
-            {formatINR(summary.onlineCollection)}
-          </span>
-        </div>
-
-        {/* Cash row */}
-        <div className="flex items-center justify-between pt-2.5">
-          <div className="flex items-center gap-2">
-            <Banknote className="w-4 h-4" style={{ color: 'var(--color-text-secondary)' }} />
-            <span className="text-sm font-medium" style={{ color: 'var(--color-text)' }}>
-              Cash ({cashPct}%)
-            </span>
-          </div>
-          <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
-            {formatINR(summary.cashCollection)}
-          </span>
         </div>
       </div>
 
@@ -354,12 +338,12 @@ export const Dashboard: React.FC<DashboardProps> = ({
           {/* Legend */}
           <div className="flex items-center gap-4 mt-2 justify-center">
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: CHART_COLORS.cash }} />
-              <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Cash</span>
+              <Banknote className="w-3.5 h-3.5" style={{ color: CHART_COLORS.cash }} />
+              <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Cash</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm inline-block" style={{ backgroundColor: CHART_COLORS.online }} />
-              <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Online</span>
+              <QrCode className="w-3.5 h-3.5" style={{ color: CHART_COLORS.online }} />
+              <span className="text-[10px] font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Online</span>
             </div>
           </div>
         </div>
@@ -478,7 +462,14 @@ export const Dashboard: React.FC<DashboardProps> = ({
                     <p className="text-xs mt-0.5 flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
                       <span>{formatDateLabel(tx.date)}</span>
                       <span>·</span>
-                      <span>{tx.payment_mode}</span>
+                      <span className="inline-flex items-center gap-0.5">
+                        {tx.payment_mode === 'Cash' ? (
+                          <Banknote className="w-3 h-3 text-emerald-600 inline" />
+                        ) : (
+                          <QrCode className="w-3 h-3 text-blue-600 inline" />
+                        )}
+                        {tx.payment_mode}
+                      </span>
                       {tx.category && (
                         <>
                           <span>·</span>
