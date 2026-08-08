@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, HeartHandshake, CheckCircle2, AlertCircle } from 'lucide-react';
+import { X, HeartHandshake, CheckCircle2, AlertCircle, Banknote, QrCode } from 'lucide-react';
 import confetti from 'canvas-confetti';
 import { Donation, PaymentMode } from '../types';
 import { isValidMobileNumber, cleanPhoneNumber } from '../utils/currency';
@@ -120,7 +120,7 @@ export const DonationModal: React.FC<DonationModalProps> = ({
         particleCount: 60,
         spread: 70,
         origin: { y: 0.6 },
-        colors: ['#E65100', '#880E4F', '#D4AF37'],
+        colors: ['#B8960C', '#C9A84C', '#111111'],
       });
     } catch {
       // ignore
@@ -129,193 +129,229 @@ export const DonationModal: React.FC<DonationModalProps> = ({
     onSave(newDonation);
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1.5px solid var(--color-border)',
+    backgroundColor: 'var(--bg-subtle)',
+    color: 'var(--color-text)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '14px',
+    outline: 'none',
+    transition: 'border-color 0.15s',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--color-text-secondary)',
+    marginBottom: '6px',
+    fontFamily: 'var(--font-sans)',
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl relative overflow-hidden">
-        {/* Top Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-              <HeartHandshake className="w-6 h-6" />
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative overflow-hidden"
+        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)', maxHeight: '90vh', overflowY: 'auto' }}
+      >
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--color-border)' }} />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 pt-4 pb-4" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-gold-light)', color: 'var(--color-gold)' }}
+            >
+              <HeartHandshake className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-                {editingDonation ? 'Edit Donation (Vargani)' : 'Add Donation (Vargani)'}
+              <h3
+                className="text-lg font-bold leading-tight"
+                style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+              >
+                {editingDonation ? 'Edit Donation' : 'Add Donation'}
               </h3>
-              <p className="text-xs text-amber-600 dark:text-amber-400 font-bold">
+              <p className="text-[11px] font-medium" style={{ color: 'var(--color-gold)' }}>
                 Receipt No: {receiptNumber}
               </p>
             </div>
           </div>
-
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Donor Name */}
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
+          {/* NAME */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Donor Name <span className="text-rose-500">*</span>
-            </label>
+            <label style={labelStyle}>Name / Origin <span style={{ color: 'var(--color-expense)' }}>*</span></label>
             <input
               type="text"
               value={donorName}
               onChange={(e) => setDonorName(e.target.value)}
-              placeholder="e.g. Ramesh Patil / Sharma Family"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              placeholder="e.g. Ramesh Patel"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
             />
             {nameError && (
-              <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {nameError}
+              <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                <AlertCircle className="w-3.5 h-3.5" />{nameError}
               </p>
             )}
           </div>
 
-          {/* Amount & Payment Mode Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Amount */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Amount (₹) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="5001"
-                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
-                />
-              </div>
-              {amountError && (
-                <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {amountError}
-                </p>
-              )}
+          {/* AMOUNT */}
+          <div>
+            <label style={labelStyle}>Amount <span style={{ color: 'var(--color-expense)' }}>*</span></label>
+            <div className="relative">
+              <span
+                className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-xl"
+                style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-serif)' }}
+              >
+                ₹
+              </span>
+              <input
+                type="number"
+                min="1"
+                step="any"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                style={{ ...inputStyle, paddingLeft: '36px', fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-serif)' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; e.target.style.boxShadow = '0 0 0 3px rgba(201,168,76,0.15)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; e.target.style.boxShadow = 'none'; }}
+              />
             </div>
-
-            {/* Payment Mode */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Payment Mode
-              </label>
-              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('Cash')}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    paymentMode === 'Cash'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  💵 Cash
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('Online')}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    paymentMode === 'Online'
-                      ? 'bg-sky-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900'
-                  }`}
-                >
-                  📲 Online
-                </button>
-              </div>
-            </div>
+            {amountError && (
+              <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                <AlertCircle className="w-3.5 h-3.5" />{amountError}
+              </p>
+            )}
           </div>
 
-          {/* Phone Number & Date Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Phone Number */}
+          {/* DATE & PHONE */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Mobile Number
-              </label>
+              <label style={labelStyle}>Date</label>
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
+              />
+            </div>
+            <div>
+              <label style={labelStyle}>Mobile (Optional)</label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-medium">
-                  +91
-                </span>
+                <span className="absolute left-3 top-3 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>+91</span>
                 <input
                   type="tel"
                   maxLength={10}
                   value={phone}
                   onChange={(e) => setPhone(e.target.value)}
-                  placeholder=""
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  style={{ ...inputStyle, paddingLeft: '40px' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
               {phoneError && (
-                <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {phoneError}
+                <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                  <AlertCircle className="w-3 h-3" />{phoneError}
                 </p>
               )}
             </div>
+          </div>
 
-            {/* Date */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Date
-              </label>
-              <input
-                type="date"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
-              />
+          {/* PAYMENT MODE */}
+          <div>
+            <label style={labelStyle}>Payment Mode</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['Cash', 'Online'] as PaymentMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPaymentMode(mode)}
+                  className="flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: paymentMode === mode ? 'var(--color-primary)' : 'var(--bg-subtle)',
+                    color: paymentMode === mode ? '#fff' : 'var(--color-text-secondary)',
+                    border: paymentMode === mode ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {mode === 'Cash' ? <Banknote className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+                  {mode}
+                </button>
+              ))}
             </div>
           </div>
 
-          {/* Notes */}
+          {/* NOTES */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Notes (Optional)
-            </label>
+            <label style={labelStyle}>Notes (Optional)</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Aarti sponsorship, Aarti Vargani"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              placeholder="e.g. Aarti sponsorship"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>
 
-          {/* Network Error Alert */}
+          {/* Network Error */}
           {networkError && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{networkError}</span>
+            <div
+              className="p-3 rounded-xl flex items-center gap-2"
+              style={{ backgroundColor: 'var(--color-expense-light)', border: '1px solid #e0b4b4', color: 'var(--color-expense)' }}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-medium">{networkError}</span>
             </div>
           )}
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex-1 py-3 rounded-2xl font-semibold text-sm transition-all"
+              style={{
+                backgroundColor: 'var(--bg-subtle)',
+                color: 'var(--color-text-secondary)',
+                border: '1px solid var(--color-border)',
+              }}
             >
               Cancel
             </button>
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+              className="flex-2 py-3 px-6 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2"
+              style={{ flex: 2, backgroundColor: 'var(--color-primary)', color: '#fff' }}
             >
-              <CheckCircle2 className="w-4 h-4" />
-              <span>{editingDonation ? 'Update Donation' : 'Save & Generate Receipt'}</span>
+              <CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-gold-muted)' }} />
+              {editingDonation ? 'Update Donation' : 'Confirm Entry'}
             </button>
           </div>
         </form>

@@ -6,9 +6,8 @@ import {
   TrendingUp,
   TrendingDown,
   Wallet,
-  BarChart3,
-  PieChart as PieIcon,
-  CheckCircle2,
+  Target,
+  ArrowUpRight,
 } from 'lucide-react';
 import {
   BarChart,
@@ -17,8 +16,6 @@ import {
   YAxis,
   Tooltip,
   ResponsiveContainer,
-  PieChart,
-  Pie,
   Cell,
 } from 'recharts';
 import { FinancialSummary, Donation, Expense, MandalSettings } from '../types';
@@ -41,9 +38,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
 }) => {
   const isPositive = summary.currentBalance >= 0;
 
-  // Category breakdown calculation
+  // Category breakdown calculation (unchanged)
   const categorySummary: Record<string, { total: number; cash: number; online: number; count: number }> = {};
-
   expenses.forEach((e) => {
     if (!categorySummary[e.category]) {
       categorySummary[e.category] = { total: 0, cash: 0, online: 0, count: 0 };
@@ -57,22 +53,18 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     }
   });
 
-  const pieData = Object.entries(categorySummary).map(([name, data]) => ({
-    name,
-    value: data.total,
-  }));
+  // Chart data: category bars
+  const barData = Object.entries(categorySummary)
+    .sort((a, b) => b[1].total - a[1].total)
+    .slice(0, 6)
+    .map(([name, d]) => ({ name: name.slice(0, 8), value: d.total }));
 
-  const CATEGORY_COLORS = [
-    '#E65100',
-    '#880E4F',
-    '#D4AF37',
-    '#0284C7',
-    '#16A34A',
-    '#9333EA',
-    '#E11D48',
-    '#CA8A04',
-  ];
+  // Allocation (sorted by total, descending)
+  const allocationEntries = Object.entries(categorySummary)
+    .sort((a, b) => b[1].total - a[1].total);
+  const maxAlloc = allocationEntries[0]?.[1].total || 1;
 
+  // Download handlers (unchanged)
   const handleDownloadPDF = () => {
     const pdf = generateFinancialReportPDF(donations, expenses, summary, settings);
     pdf.save(`Financial_Report_${settings.mandal_name.replace(/\s+/g, '_')}_${settings.ganeshotsav_year}.pdf`);
@@ -97,153 +89,315 @@ export const ReportsView: React.FC<ReportsViewProps> = ({
     window.open(blobUrl, '_blank');
   };
 
+  const collectPct = summary.totalCollection > 0
+    ? Math.round((summary.totalCollection / (summary.totalCollection + summary.totalExpenses || 1)) * 100)
+    : 0;
+  const expensePct = summary.totalExpenses > 0
+    ? Math.round((summary.totalExpenses / (summary.totalCollection || 1)) * 100)
+    : 0;
+
   return (
-    <div className="space-y-5 pb-20">
-      {/* Top Banner & Export Actions Bar */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 text-xs font-bold mb-1">
-            <span>Statement of Accounts</span>
-          </div>
-          <h2 className="text-xl font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-            Financial Reports & Exports
-          </h2>
-          <p className="text-xs text-slate-500 dark:text-slate-400">
-            {settings.mandal_name} • Ganeshotsav {settings.ganeshotsav_year}
-          </p>
-        </div>
+    <div className="space-y-4 pb-24 animate-fadeup">
 
-        {/* Action Export Buttons */}
-        <div className="flex flex-wrap items-center gap-2">
-          <button
-            onClick={handleDownloadPDF}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-amber-600 hover:bg-amber-700 text-white font-extrabold px-3.5 py-2.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all"
-          >
-            <Download className="w-4 h-4" />
-            <span>Download PDF</span>
-          </button>
-
-          <button
-            onClick={handleExportCSV}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold px-3.5 py-2.5 rounded-xl text-xs shadow-xs active:scale-95 transition-all"
-          >
-            <FileSpreadsheet className="w-4 h-4" />
-            <span>Export Excel/CSV</span>
-          </button>
-
-          <button
-            onClick={handlePrint}
-            className="flex-1 sm:flex-none flex items-center justify-center gap-1.5 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-extrabold px-3.5 py-2.5 rounded-xl text-xs transition-all"
-          >
-            <Printer className="w-4 h-4" />
-            <span>Print Report</span>
-          </button>
-        </div>
+      {/* ── Page Heading ──────────────────────────────── */}
+      <div>
+        <h2
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+        >
+          Financial Reports
+        </h2>
+        <p className="text-xs mt-1 leading-relaxed" style={{ color: 'var(--color-text-secondary)' }}>
+          Comprehensive insights into festival collections and expenditures for the current season.
+        </p>
       </div>
 
-      {/* Summary Metrics Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3.5">
-        {/* Total Collection */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-            <span>Total Collection</span>
-            <TrendingUp className="w-4 h-4 text-emerald-600" />
+      {/* ── Top Metric Cards ──────────────────────────── */}
+      <div className="grid grid-cols-2 gap-3">
+        {/* Collection */}
+        <div
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-gold-light)', color: 'var(--color-gold)' }}
+            >
+              <TrendingUp className="w-3.5 h-3.5" />
+            </div>
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+              style={{ backgroundColor: 'var(--color-gold-light)', color: 'var(--color-gold)' }}
+            >
+              TARGET {collectPct}%
+            </span>
           </div>
-          <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400 mt-1">
+          <p className="section-label mb-1">Total Collection</p>
+          <p
+            className="text-xl font-bold"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+          >
             {formatINR(summary.totalCollection)}
           </p>
-          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs flex justify-between">
-            <span className="text-slate-500">Cash: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.cashCollection)}</strong></span>
-            <span className="text-slate-500">Online: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.onlineCollection)}</strong></span>
-          </div>
         </div>
 
-        {/* Total Expenses */}
-        <div className="bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-xs">
-          <div className="flex items-center justify-between text-xs text-slate-500 font-bold uppercase">
-            <span>Total Expenses</span>
-            <TrendingDown className="w-4 h-4 text-rose-600" />
+        {/* Expenses */}
+        <div
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <div className="flex items-center gap-2 mb-2">
+            <div
+              className="w-7 h-7 rounded-lg flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-expense-light)', color: 'var(--color-expense)' }}
+            >
+              <TrendingDown className="w-3.5 h-3.5" />
+            </div>
+            <span
+              className="text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-0.5"
+              style={{ backgroundColor: 'var(--color-expense-light)', color: 'var(--color-expense)' }}
+            >
+              <ArrowUpRight className="w-3 h-3" />
+              {expensePct}%
+            </span>
           </div>
-          <p className="text-2xl font-black text-rose-600 dark:text-rose-400 mt-1">
+          <p className="section-label mb-1">Expenditure</p>
+          <p
+            className="text-xl font-bold"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-expense)' }}
+          >
             {formatINR(summary.totalExpenses)}
           </p>
-          <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-800 text-xs flex justify-between">
-            <span className="text-slate-500">Cash: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.cashExpenses)}</strong></span>
-            <span className="text-slate-500">Online: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.onlineExpenses)}</strong></span>
-          </div>
-        </div>
-
-        {/* Net Balance */}
-        <div
-          className={`p-4 rounded-2xl border shadow-xs ${
-            isPositive
-              ? 'bg-emerald-500/10 border-emerald-300 dark:border-emerald-800'
-              : 'bg-rose-500/10 border-rose-300 dark:border-rose-800'
-          }`}
-        >
-          <div className="flex items-center justify-between text-xs text-slate-700 dark:text-slate-300 font-bold uppercase">
-            <span>Net Financial Balance</span>
-            <Wallet className="w-4 h-4 text-amber-600" />
-          </div>
-          <p
-            className={`text-2xl font-black mt-1 ${
-              isPositive ? 'text-emerald-700 dark:text-emerald-300' : 'text-rose-700 dark:text-rose-300'
-            }`}
-          >
-            {formatINR(summary.currentBalance)}
-          </p>
-          <div className="mt-3 pt-2 border-t border-slate-200/60 dark:border-slate-800 text-xs flex justify-between">
-            <span className="text-slate-500">Cash Bal: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.cashBalance)}</strong></span>
-            <span className="text-slate-500">Online Bal: <strong className="text-slate-800 dark:text-slate-200">{formatINR(summary.onlineBalance)}</strong></span>
-          </div>
         </div>
       </div>
 
-      {/* Category Expenses Breakdown Table */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 mb-3 flex items-center gap-2">
-          <PieIcon className="w-5 h-5 text-rose-500" />
-          Category-wise Expense Breakdown
-        </h3>
+      {/* ── Net Balance ───────────────────────────────── */}
+      <div
+        className="rounded-2xl p-4 flex items-center justify-between"
+        style={{
+          backgroundColor: isPositive ? '#EDFAF1' : 'var(--color-expense-light)',
+          border: `1px solid ${isPositive ? '#A8E6C1' : '#e0b4b4'}`,
+        }}
+      >
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-full flex items-center justify-center"
+            style={{
+              backgroundColor: isPositive ? '#27ae60' : 'var(--color-expense)',
+              color: '#fff',
+            }}
+          >
+            <Wallet className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <p className="section-label">Net Financial Balance</p>
+            <p
+              className="text-xl font-bold"
+              style={{
+                fontFamily: 'var(--font-serif)',
+                color: isPositive ? '#1a7a3f' : 'var(--color-expense)',
+              }}
+            >
+              {formatINR(summary.currentBalance)}
+            </p>
+          </div>
+        </div>
+        <div className="text-right">
+          <p className="section-label mb-0.5">Cash Bal</p>
+          <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.cashBalance)}</p>
+          <p className="section-label mt-1 mb-0.5">Online Bal</p>
+          <p className="text-xs font-semibold" style={{ color: 'var(--color-text)' }}>{formatINR(summary.onlineBalance)}</p>
+        </div>
+      </div>
 
-        {Object.keys(categorySummary).length === 0 ? (
-          <p className="text-xs text-slate-400 py-4 text-center">No expenses recorded yet.</p>
-        ) : (
+      {/* ── Chart: Category Breakdown ─────────────────── */}
+      {barData.length > 0 && (
+        <div
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <p className="text-sm font-bold mb-0.5" style={{ color: 'var(--color-text)' }}>Expense Breakdown</p>
+          <p className="text-xs mb-3" style={{ color: 'var(--color-text-secondary)' }}>
+            Collection vs. Expenses · by category
+          </p>
+          <div className="flex items-center gap-3 mb-2">
+            <div className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm" style={{ backgroundColor: 'var(--color-primary)', display: 'inline-block' }} />
+              <span className="text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Expense</span>
+            </div>
+          </div>
+          <div className="h-44 w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={barData} margin={{ top: 4, right: 4, left: -24, bottom: 0 }}>
+                <XAxis
+                  dataKey="name"
+                  stroke="var(--color-text-muted)"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  fontFamily="var(--font-sans)"
+                />
+                <YAxis
+                  stroke="var(--color-text-muted)"
+                  fontSize={10}
+                  tickLine={false}
+                  axisLine={false}
+                  fontFamily="var(--font-sans)"
+                />
+                <Tooltip
+                  formatter={(value) => formatINR(Number(value))}
+                  contentStyle={{
+                    backgroundColor: 'var(--color-primary)',
+                    borderColor: '#333',
+                    color: '#fff',
+                    borderRadius: '12px',
+                    fontSize: '11px',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                  cursor={{ fill: 'rgba(0,0,0,0.04)' }}
+                />
+                <Bar dataKey="value" radius={[5, 5, 0, 0]} maxBarSize={36}>
+                  {barData.map((_, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={index === 0 ? 'var(--color-primary)' : index % 2 === 0 ? 'var(--color-gold-muted)' : '#555'}
+                    />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      )}
+
+      {/* ── Allocation Table ──────────────────────────── */}
+      {allocationEntries.length > 0 && (
+        <div
+          className="rounded-2xl p-4"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <div className="flex items-center justify-between mb-4">
+            <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Allocation</p>
+            <span className="text-xs font-semibold" style={{ color: 'var(--color-gold)' }}>VIEW ALL</span>
+          </div>
+
+          <div className="space-y-0">
+            {allocationEntries.map(([category, data]) => {
+              const pct = Math.round((data.total / summary.totalExpenses) * 100) || 0;
+              const barWidth = Math.round((data.total / maxAlloc) * 100);
+              return (
+                <div key={category} className="allocation-row">
+                  {/* Icon */}
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0"
+                    style={{ backgroundColor: 'var(--bg-subtle)' }}
+                  >
+                    <span style={{ fontSize: '16px' }}>
+                      {category === 'Decoration' ? '🏛️' :
+                       category === 'Food' ? '🍱' :
+                       category === 'Sound' ? '🔊' :
+                       category === 'Prasad' ? '🙏' :
+                       category === 'Lighting' ? '💡' :
+                       category === 'Flowers' ? '🌸' :
+                       category === 'Pandal' ? '⛺' :
+                       category === 'Permission' ? '📋' : '📌'}
+                    </span>
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-sm font-semibold" style={{ color: 'var(--color-text)' }}>{category}</span>
+                      <span className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                        {formatINR(data.total)}
+                      </span>
+                    </div>
+                    <div className="progress-bar-track">
+                      <div className="progress-bar-fill" style={{ width: `${barWidth}%` }} />
+                    </div>
+                    <p className="text-[10px] mt-1" style={{ color: 'var(--color-text-muted)' }}>{pct}%</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* ── Category Detail Table ─────────────────────── */}
+      {Object.keys(categorySummary).length > 0 && (
+        <div
+          className="rounded-2xl overflow-hidden"
+          style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+        >
+          <div className="px-4 py-3" style={{ borderBottom: '1px solid var(--color-border)' }}>
+            <p className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Category-wise Breakdown</p>
+          </div>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-slate-200 dark:border-slate-800 text-slate-500 font-bold uppercase">
-                  <th className="py-2.5 px-3">Category</th>
-                  <th className="py-2.5 px-3">Txn Count</th>
-                  <th className="py-2.5 px-3">Cash (₹)</th>
-                  <th className="py-2.5 px-3">Online (₹)</th>
-                  <th className="py-2.5 px-3 text-right">Total Expense (₹)</th>
+                <tr style={{ borderBottom: '1px solid var(--color-border)', color: 'var(--color-text-secondary)' }}>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Category</th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Count</th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Cash</th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px]">Online</th>
+                  <th className="py-2.5 px-4 font-bold uppercase tracking-wide text-[10px] text-right">Total</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+              <tbody>
                 {Object.entries(categorySummary).map(([category, data]) => (
-                  <tr key={category} className="hover:bg-slate-50 dark:hover:bg-slate-800/50">
-                    <td className="py-2.5 px-3 font-bold text-slate-900 dark:text-slate-100">
-                      {category}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-600 dark:text-slate-400 font-medium">
-                      {data.count}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
-                      {formatINR(data.cash)}
-                    </td>
-                    <td className="py-2.5 px-3 text-slate-700 dark:text-slate-300">
-                      {formatINR(data.online)}
-                    </td>
-                    <td className="py-2.5 px-3 font-extrabold text-rose-600 dark:text-rose-400 text-right">
-                      {formatINR(data.total)}
-                    </td>
+                  <tr
+                    key={category}
+                    style={{ borderBottom: '1px solid var(--color-border)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                  >
+                    <td className="py-3 px-4 font-semibold" style={{ color: 'var(--color-text)' }}>{category}</td>
+                    <td className="py-3 px-4" style={{ color: 'var(--color-text-secondary)' }}>{data.count}</td>
+                    <td className="py-3 px-4" style={{ color: 'var(--color-text)' }}>{formatINR(data.cash)}</td>
+                    <td className="py-3 px-4" style={{ color: 'var(--color-text)' }}>{formatINR(data.online)}</td>
+                    <td className="py-3 px-4 font-bold text-right" style={{ color: 'var(--color-expense)' }}>{formatINR(data.total)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-        )}
+        </div>
+      )}
+
+      {/* ── Download Button ───────────────────────────── */}
+      <div
+        className="rounded-2xl p-5 text-center"
+        style={{ backgroundColor: 'var(--bg-card)', border: '1px solid var(--color-border)', boxShadow: 'var(--shadow-card)' }}
+      >
+        <button
+          onClick={handleDownloadPDF}
+          className="w-full flex items-center justify-center gap-2 py-4 rounded-2xl font-bold text-base transition-all active:scale-95"
+          style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
+        >
+          <Download className="w-5 h-5" />
+          Download Full Report
+        </button>
+        <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>Available in PDF and Excel formats.</p>
+
+        <div className="flex gap-2 mt-3">
+          <button
+            onClick={handleExportCSV}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95"
+            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+          >
+            <FileSpreadsheet className="w-4 h-4" />
+            Export CSV
+          </button>
+          <button
+            onClick={handlePrint}
+            className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl font-semibold text-sm transition-all active:scale-95"
+            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
+          >
+            <Printer className="w-4 h-4" />
+            Print
+          </button>
+        </div>
       </div>
     </div>
   );

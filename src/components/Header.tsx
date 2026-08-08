@@ -1,5 +1,5 @@
 import React from 'react';
-import { Database, Zap, CloudOff } from 'lucide-react';
+import { Database, Zap, CloudOff, User } from 'lucide-react';
 import { MandalSettings, FinancialSummary } from '../types';
 import { formatINR } from '../utils/currency';
 import { isSupabaseConfigured } from '../lib/supabase';
@@ -17,96 +17,107 @@ export const Header: React.FC<HeaderProps> = ({
   summary,
   onOpenSettings,
   onQuickBackup,
-  onOpenSupabaseModal,
 }) => {
-  const isPositive = summary.currentBalance >= 0;
-
   return (
-    <header className="sticky top-0 z-30 bg-amber-500/95 backdrop-blur-md border-b border-amber-600/30 shadow-md transition-colors overflow-x-hidden">
-      {/* Top Banner Accent Line */}
-      <div className="h-1 w-full bg-gradient-to-r from-amber-600 via-amber-400 to-amber-700"></div>
-
-      <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center justify-between gap-3">
+    <header
+      className="sticky top-0 z-30 overflow-x-hidden"
+      style={{
+        backgroundColor: 'var(--bg-card)',
+        borderBottom: '1px solid var(--color-border)',
+        boxShadow: '0 1px 0 0 var(--color-border)',
+      }}
+    >
+      <div className="max-w-5xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         {/* Left: Logo & Mandal Name */}
-        <div className="flex items-center gap-3 cursor-pointer" onClick={onOpenSettings}>
-          <div className="relative">
-            <div className="w-10 h-10 rounded-full bg-amber-100 border-2 border-amber-300 flex items-center justify-center overflow-hidden shadow-sm">
-              {settings.logo ? (
-                <img
-                  src={settings.logo}
-                  alt="Mandal Logo"
-                  className="w-full h-full object-cover"
-                  onError={(e) => {
-                    (e.target as HTMLImageElement).style.display = 'none';
-                  }}
-                />
-              ) : null}
-              <span className="text-xl">🪔</span>
-            </div>
-            <span className="absolute -bottom-1 -right-1 bg-amber-500 text-amber-950 text-[10px] font-extrabold px-1 rounded-full shadow border border-amber-200">
-              {settings.ganeshotsav_year || '2026'}
-            </span>
+        <div className="flex items-center gap-3 cursor-pointer min-w-0" onClick={onOpenSettings}>
+          {/* Logo square */}
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center overflow-hidden shrink-0 relative"
+            style={{ backgroundColor: 'var(--color-primary)', border: '1px solid #333' }}
+          >
+            {settings.logo ? (
+              <img
+                src={settings.logo}
+                alt="Mandal Logo"
+                className="w-full h-full object-cover"
+                onError={(e) => {
+                  (e.target as HTMLImageElement).style.display = 'none';
+                }}
+              />
+            ) : (
+              <span className="text-lg">🪔</span>
+            )}
           </div>
 
-          <div>
-            <h1 className="text-base sm:text-lg font-bold text-amber-950 leading-tight tracking-wide flex items-center gap-1.5">
-              <span>{settings.mandal_name}</span>
+          <div className="min-w-0">
+            <h1
+              className="text-base font-bold leading-tight tracking-tight truncate"
+              style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)', fontSize: '1rem' }}
+            >
+              {settings.mandal_name}
             </h1>
-            <p className="text-xs text-amber-900/90 font-medium flex items-center gap-1">
-              <span className="inline-block w-1.5 h-1.5 rounded-full bg-emerald-600 animate-pulse"></span>
-              Vargani Management System
+            <p className="text-[10px] font-medium flex items-center gap-1" style={{ color: 'var(--color-text-secondary)' }}>
+              <span
+                className="inline-block w-1.5 h-1.5 rounded-full"
+                style={{ backgroundColor: isSupabaseConfigured ? '#27ae60' : '#e67e22', animation: 'pulse 2s infinite' }}
+              ></span>
+              Vargani {settings.ganeshotsav_year || '2026'}
             </p>
           </div>
         </div>
 
-        {/* Right Controls & Balance Chip */}
-        <div className="flex items-center gap-2">
-          {/* Supabase Status Pill */}
+        {/* Right: Controls */}
+        <div className="flex items-center gap-2 shrink-0">
+          {/* Supabase Status Chip */}
           <div
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold border shadow-xs ${
-              isSupabaseConfigured
-                ? 'bg-emerald-900 text-emerald-100 border-emerald-500'
-                : 'bg-amber-100 text-amber-900 border-amber-300'
-            }`}
-            title={isSupabaseConfigured ? 'Supabase Realtime Cloud Sync Active' : 'Local Storage Cache Mode'}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold border"
+            style={{
+              backgroundColor: isSupabaseConfigured ? '#EDFAF1' : 'var(--color-gold-light)',
+              borderColor: isSupabaseConfigured ? '#A8E6C1' : '#D4B44A',
+              color: isSupabaseConfigured ? '#1a7a3f' : '#8B6914',
+            }}
+            title={isSupabaseConfigured ? 'Supabase Live Sync Active' : 'Local Storage Mode'}
           >
             {isSupabaseConfigured ? (
-              <>
-                <Zap className="w-3.5 h-3.5 text-emerald-300 animate-pulse" />
-                <span className="hidden xs:inline">Supabase Live</span>
-              </>
+              <><Zap className="w-3 h-3" />Live</>
             ) : (
-              <>
-                <CloudOff className="w-3.5 h-3.5 text-amber-800" />
-                <span className="hidden xs:inline">Local Mode</span>
-              </>
+              <><CloudOff className="w-3 h-3" />Local</>
             )}
           </div>
 
-          {/* Quick Balance Badge */}
+          {/* Balance Badge (sm+) */}
           <div
-            className={`hidden sm:flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold border shadow-xs ${
-              isPositive
-                ? 'bg-emerald-50 text-emerald-800 border-emerald-300'
-                : 'bg-rose-50 text-rose-800 border-rose-300'
-            }`}
+            className="hidden sm:flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-bold border"
+            style={{ backgroundColor: 'var(--color-gold-light)', borderColor: 'var(--color-gold-muted)', color: 'var(--color-gold)' }}
           >
-            <span>Balance:</span>
-            <span className="text-sm font-black">{formatINR(summary.currentBalance)}</span>
+            <span className="font-medium text-[10px]" style={{ color: 'var(--color-text-secondary)' }}>Bal</span>
+            <span>{formatINR(summary.currentBalance)}</span>
           </div>
 
           {/* Backup Button */}
           <button
             onClick={onQuickBackup}
             title="Export CSV Backup"
-            className="p-2 rounded-xl text-amber-950 hover:bg-amber-600/20 transition-colors flex items-center gap-1 text-xs font-bold"
+            className="p-2 rounded-xl transition-colors flex items-center gap-1"
+            style={{ color: 'var(--color-text-secondary)' }}
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'var(--bg-subtle)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            <Database className="w-4 h-4 text-amber-900" />
-            <span className="hidden md:inline">Backup</span>
+            <Database className="w-4 h-4" />
+            <span className="hidden md:inline text-xs font-medium">Backup</span>
+          </button>
+
+          {/* User / Settings avatar */}
+          <button
+            onClick={onOpenSettings}
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-colors"
+            style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
+            title="Settings"
+          >
+            <User className="w-4 h-4" />
           </button>
         </div>
       </div>
     </header>
   );
 };
-

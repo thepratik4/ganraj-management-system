@@ -285,7 +285,7 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-100 text-slate-900 flex flex-col font-sans transition-colors overflow-x-hidden max-w-full">
+    <div className="min-h-screen flex flex-col overflow-x-hidden max-w-full" style={{ backgroundColor: 'var(--bg-main)', color: 'var(--color-text)', fontFamily: 'var(--font-sans)' }}>
       {/* Top Navigation Header */}
       <Header
         settings={settings}
@@ -297,9 +297,9 @@ export default function App() {
       {/* Main View Container */}
       <main className="flex-1 max-w-5xl w-full mx-auto px-3 sm:px-6 pt-4 overflow-x-hidden">
         {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 space-y-3">
-            <div className="w-8 h-8 border-3 border-amber-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs font-bold text-slate-500">Connecting to Supabase Database...</p>
+          <div className="flex flex-col items-center justify-center py-20 space-y-4">
+            <div className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: 'var(--color-gold-muted)', borderTopColor: 'transparent' }}></div>
+            <p className="text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>Connecting to database...</p>
           </div>
         ) : (
           <>
