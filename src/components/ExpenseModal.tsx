@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Receipt, CheckCircle2, AlertCircle, Upload, Trash2, Loader2 } from 'lucide-react';
+import { X, Receipt, CheckCircle2, AlertCircle, Upload, Trash2, Loader2, Camera, Banknote, QrCode } from 'lucide-react';
 import { Expense, ExpenseCategory, PaymentMode } from '../types';
 import { isValidMobileNumber, cleanPhoneNumber } from '../utils/currency';
 import { StorageService } from '../utils/storage';
@@ -37,7 +37,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [vendorName, setVendorName] = useState('');
   const [vendorPhone, setVendorPhone] = useState('');
   const [amount, setAmount] = useState<string>('');
-  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Cash');
+  const [paymentMode, setPaymentMode] = useState<PaymentMode>('Online');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [billImage, setBillImage] = useState<string>('');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -49,6 +49,13 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
   const [amountError, setAmountError] = useState('');
   const [phoneError, setPhoneError] = useState('');
   const [networkError, setNetworkError] = useState('');
+
+  const handleInputFocus = (e: React.FocusEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const target = e.currentTarget;
+    setTimeout(() => {
+      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
+    }, 150);
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -71,7 +78,7 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
         setVendorName('');
         setVendorPhone('');
         setAmount('');
-        setPaymentMode('Cash');
+        setPaymentMode('Online');
         setDate(new Date().toISOString().split('T')[0]);
         setBillImage('');
         setNotes('');
@@ -174,264 +181,292 @@ export const ExpenseModal: React.FC<ExpenseModalProps> = ({
     onSave(newExpense);
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1.5px solid var(--color-border)',
+    backgroundColor: 'var(--bg-subtle)',
+    color: 'var(--color-text)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '14px',
+    outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--color-text-secondary)',
+    marginBottom: '6px',
+    fontFamily: 'var(--font-sans)',
+  };
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl relative max-h-[90vh] overflow-y-auto">
+    <div
+      className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 overflow-hidden"
+      style={{ backgroundColor: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full sm:max-w-md rounded-t-3xl sm:rounded-3xl relative overflow-hidden flex flex-col max-h-[85dvh] sm:max-h-[90vh]"
+        style={{ backgroundColor: 'var(--bg-card)', boxShadow: 'var(--shadow-modal)' }}
+      >
+        {/* Drag handle (mobile) */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full" style={{ backgroundColor: 'var(--color-border)' }} />
+        </div>
+
         {/* Header */}
-        <div className="flex items-center justify-between pb-4 border-b border-slate-100 dark:border-slate-800">
-          <div className="flex items-center gap-2.5">
-            <div className="p-2.5 rounded-2xl bg-rose-100 text-rose-700 dark:bg-rose-950 dark:text-rose-300">
-              <Receipt className="w-6 h-6" />
+        <div className="flex items-center justify-between px-5 pt-3 pb-4 shrink-0" style={{ borderBottom: '1px solid var(--color-border)' }}>
+          <div className="flex items-center gap-3">
+            <div
+              className="w-9 h-9 rounded-full flex items-center justify-center"
+              style={{ backgroundColor: 'var(--color-expense-light)', color: 'var(--color-expense)' }}
+            >
+              <Receipt className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
+              <h3
+                className="text-lg font-bold leading-tight"
+                style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+              >
                 {editingExpense ? 'Edit Expense' : 'Add Expense'}
               </h3>
-              <p className="text-xs text-rose-600 dark:text-rose-400 font-bold">
+              <p className="text-[11px] font-medium" style={{ color: 'var(--color-expense)' }}>
                 Expense No: {expenseNumber}
               </p>
             </div>
           </div>
-
           <button
             onClick={onClose}
-            className="p-2 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="w-8 h-8 rounded-full flex items-center justify-center transition-all"
+            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)' }}
           >
-            <X className="w-5 h-5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="mt-4 space-y-4">
-          {/* Title */}
+        <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4 flex-1 overflow-y-auto pb-10 sm:pb-6">
+          {/* TITLE */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Expense Title <span className="text-rose-500">*</span>
-            </label>
+            <label style={labelStyle}>Expense Title <span style={{ color: 'var(--color-expense)' }}>*</span></label>
             <input
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Stage Decoration & Floral Backdrops"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
             {titleError && (
-              <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                <AlertCircle className="w-3.5 h-3.5" />
-                {titleError}
+              <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                <AlertCircle className="w-3.5 h-3.5" />{titleError}
               </p>
             )}
           </div>
 
-          {/* Category & Amount Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Category */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Category
-              </label>
-              <select
-                value={category}
-                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none"
+          {/* AMOUNT */}
+          <div>
+            <label style={labelStyle}>Amount <span style={{ color: 'var(--color-expense)' }}>*</span></label>
+            <div className="relative">
+              <span
+                className="absolute left-4 top-1/2 -translate-y-1/2 font-bold text-xl"
+                style={{ color: 'var(--color-text-secondary)', fontFamily: 'var(--font-serif)' }}
               >
-                {CATEGORIES.map((cat) => (
-                  <option key={cat} value={cat}>
-                    {cat}
-                  </option>
-                ))}
-              </select>
+                ₹
+              </span>
+              <input
+                type="number"
+                min="1"
+                step="any"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                placeholder="0.00"
+                style={{ ...inputStyle, paddingLeft: '36px', fontSize: '22px', fontWeight: 700, fontFamily: 'var(--font-serif)' }}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
+              />
             </div>
-
-            {/* Amount */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Amount (₹) <span className="text-rose-500">*</span>
-              </label>
-              <div className="relative">
-                <span className="absolute left-3.5 top-2.5 text-slate-400 font-bold">₹</span>
-                <input
-                  type="number"
-                  min="1"
-                  step="any"
-                  value={amount}
-                  onChange={(e) => setAmount(e.target.value)}
-                  placeholder="2500"
-                  className="w-full pl-8 pr-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-rose-500 focus:outline-none"
-                />
-              </div>
-              {amountError && (
-                <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {amountError}
-                </p>
-              )}
-            </div>
+            {amountError && (
+              <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                <AlertCircle className="w-3.5 h-3.5" />{amountError}
+              </p>
+            )}
           </div>
 
-          {/* Payment Mode & Date */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            {/* Payment Mode */}
+          {/* DATE & CATEGORY */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Payment Mode
-              </label>
-              <div className="grid grid-cols-2 gap-1.5 p-1 bg-slate-100 dark:bg-slate-800 rounded-xl">
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('Cash')}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    paymentMode === 'Cash'
-                      ? 'bg-emerald-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  💵 Cash
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setPaymentMode('Online')}
-                  className={`py-1.5 rounded-lg text-xs font-bold transition-all ${
-                    paymentMode === 'Online'
-                      ? 'bg-sky-600 text-white shadow-xs'
-                      : 'text-slate-600 dark:text-slate-400'
-                  }`}
-                >
-                  📲 Online
-                </button>
-              </div>
-            </div>
-
-            {/* Date */}
-            <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Date
-              </label>
+              <label style={labelStyle}>Date</label>
               <input
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
+            </div>
+            <div>
+              <label style={labelStyle}>Category</label>
+              <select
+                value={category}
+                onChange={(e) => setCategory(e.target.value as ExpenseCategory)}
+                style={{ ...inputStyle, cursor: 'pointer' }}
+                onFocus={e => handleInputFocus(e)}
+              >
+                {CATEGORIES.map((cat) => (
+                  <option key={cat} value={cat}>{cat}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          {/* Vendor Details */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* PAYMENT MODE */}
+          <div>
+            <label style={labelStyle}>Payment Mode</label>
+            <div className="grid grid-cols-2 gap-2">
+              {(['Cash', 'Online'] as PaymentMode[]).map((mode) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setPaymentMode(mode)}
+                  className="flex items-center justify-center gap-2 py-3 rounded-2xl font-semibold text-sm transition-all"
+                  style={{
+                    backgroundColor: paymentMode === mode ? 'var(--color-primary)' : 'var(--bg-subtle)',
+                    color: paymentMode === mode ? '#fff' : 'var(--color-text-secondary)',
+                    border: paymentMode === mode ? '1.5px solid var(--color-primary)' : '1.5px solid var(--color-border)',
+                    fontFamily: 'var(--font-sans)',
+                  }}
+                >
+                  {mode === 'Cash' ? <Banknote className="w-4 h-4" /> : <QrCode className="w-4 h-4" />}
+                  {mode}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* VENDOR DETAILS */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Vendor Name (Optional)
-              </label>
+              <label style={labelStyle}>Vendor Name</label>
               <input
                 type="text"
                 value={vendorName}
                 onChange={(e) => setVendorName(e.target.value)}
                 placeholder="e.g. Shivaji Decorators"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Vendor Mobile (Optional)
-              </label>
+              <label style={labelStyle}>Vendor Mobile</label>
               <input
                 type="tel"
                 maxLength={10}
                 value={vendorPhone}
                 onChange={(e) => setVendorPhone(e.target.value)}
                 placeholder="9822998877"
-                className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
               {phoneError && (
-                <p className="text-xs text-rose-500 font-medium mt-1 flex items-center gap-1">
-                  <AlertCircle className="w-3.5 h-3.5" />
-                  {phoneError}
+                <p className="text-xs font-medium mt-1 flex items-center gap-1" style={{ color: 'var(--color-expense)' }}>
+                  <AlertCircle className="w-3 h-3" />{phoneError}
                 </p>
               )}
             </div>
           </div>
 
-          {/* Bill Image Upload */}
+          {/* BILL IMAGE UPLOAD */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Bill / Receipt Image (Optional)
-            </label>
+            <label style={labelStyle}>Attachment (Optional)</label>
             {billImage ? (
-              <div className="relative rounded-2xl overflow-hidden border border-slate-200 dark:border-slate-700 max-h-40 bg-slate-900 flex items-center justify-center">
-                <img src={billImage} alt="Bill Preview" className="max-h-40 object-contain" />
+              <div
+                className="relative rounded-2xl overflow-hidden"
+                style={{ border: '1px solid var(--color-border)', maxHeight: '140px', backgroundColor: '#111', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <img src={billImage} alt="Bill Preview" className="max-h-36 object-contain" />
                 <button
                   type="button"
                   onClick={() => setBillImage('')}
-                  className="absolute top-2 right-2 p-1.5 rounded-full bg-rose-600 text-white hover:bg-rose-700 shadow-md transition-all"
+                  className="absolute top-2 right-2 p-1.5 rounded-full transition-all"
+                  style={{ backgroundColor: 'var(--color-expense)', color: '#fff' }}
                   title="Remove Image"
                 >
-                  <Trash2 className="w-4 h-4" />
+                  <Trash2 className="w-3.5 h-3.5" />
                 </button>
               </div>
             ) : (
-              <label className="flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-300 dark:border-slate-700 rounded-2xl cursor-pointer hover:border-rose-500 dark:hover:border-rose-400 bg-slate-50 dark:bg-slate-800/50 transition-colors">
-                <Upload className="w-6 h-6 text-slate-400 mb-1" />
-                <span className="text-xs font-bold text-slate-600 dark:text-slate-300">
-                  Click to upload bill image
-                </span>
-                <span className="text-[10px] text-slate-400">PNG, JPG or WEBP (Max 5MB)</span>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
-                  className="hidden"
-                />
+              <label
+                className="flex flex-col items-center justify-center py-6 rounded-2xl cursor-pointer transition-colors"
+                style={{
+                  border: '1.5px dashed var(--color-border)',
+                  backgroundColor: 'var(--bg-subtle)',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-gold-muted)')}
+                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
+              >
+                <Camera className="w-7 h-7 mb-2" style={{ color: 'var(--color-text-muted)' }} />
+                <span className="text-xs font-semibold" style={{ color: 'var(--color-text-secondary)' }}>Tap to upload receipt</span>
+                <span className="text-[10px] mt-0.5" style={{ color: 'var(--color-text-muted)' }}>PNG, JPG or WEBP · Max 10MB</span>
+                <input type="file" accept="image/*" onChange={handleImageChange} className="hidden" />
               </label>
             )}
           </div>
 
-          {/* Notes */}
+          {/* NOTES */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Notes (Optional)
-            </label>
+            <label style={labelStyle}>Notes (Optional)</label>
             <input
               type="text"
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="e.g. Paid advance, remaining balance due on Day 5"
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-rose-500 focus:outline-none"
+              placeholder="e.g. Paid advance, remaining due on Day 5"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; handleInputFocus(e); }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>
 
-          {/* Network Error Alert */}
+          {/* Network Error */}
           {networkError && (
-            <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-800 text-rose-700 dark:text-rose-300 text-xs font-bold flex items-center gap-2">
-              <AlertCircle className="w-4 h-4 text-rose-500 shrink-0" />
-              <span>{networkError}</span>
+            <div
+              className="p-3 rounded-xl flex items-center gap-2"
+              style={{ backgroundColor: 'var(--color-expense-light)', border: '1px solid #e0b4b4', color: 'var(--color-expense)' }}
+            >
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span className="text-xs font-medium">{networkError}</span>
             </div>
           )}
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-end gap-2">
+          <div className="flex items-center gap-2 pt-1">
             <button
               type="button"
               onClick={onClose}
-              className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="flex-1 py-3 rounded-2xl font-semibold text-sm transition-all"
+              style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)', border: '1px solid var(--color-border)' }}
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={isUploading}
-              className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 disabled:opacity-50 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+              className="py-3 px-6 rounded-2xl font-bold text-sm transition-all active:scale-95 flex items-center justify-center gap-2 disabled:opacity-50"
+              style={{ flex: 2, backgroundColor: 'var(--color-primary)', color: '#fff' }}
             >
               {isUploading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Uploading Receipt...</span>
-                </>
+                <><Loader2 className="w-4 h-4 animate-spin" />Uploading...</>
               ) : (
-                <>
-                  <CheckCircle2 className="w-4 h-4" />
-                  <span>{editingExpense ? 'Update Expense' : 'Save Expense'}</span>
-                </>
+                <><CheckCircle2 className="w-4 h-4" style={{ color: 'var(--color-gold-muted)' }} />
+                {editingExpense ? 'Update Expense' : 'Confirm Entry'}</>
               )}
             </button>
           </div>

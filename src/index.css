@@ -1,5 +1,32 @@
 @import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,500;0,600;0,700;0,900;1,400;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap');
 
+/* ─── Design Tokens ──────────────────────────────────────── */
+:root {
+  --bg-main: #F5F3EE;
+  --bg-card: #FFFFFF;
+  --bg-subtle: #F0EDE6;
+  --color-primary: #111111;
+  --color-gold: #B8960C;
+  --color-gold-light: #F5EDD0;
+  --color-gold-muted: #C9A84C;
+  --color-expense: #C0392B;
+  --color-expense-light: #FDECEA;
+  --color-border: #E8E4DC;
+  --color-text: #111111;
+  --color-text-secondary: #6B6B6B;
+  --color-text-muted: #9E9E9E;
+  --shadow-card: 0 1px 4px 0 rgba(0,0,0,0.06), 0 0 0 1px rgba(0,0,0,0.04);
+  --shadow-card-hover: 0 4px 16px 0 rgba(0,0,0,0.10);
+  --shadow-modal: 0 20px 60px 0 rgba(0,0,0,0.20);
+  --radius-card: 20px;
+  --radius-btn: 14px;
+  --radius-input: 12px;
+  --font-serif: 'Playfair Display', Georgia, serif;
+  --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+/* ─── Base Reset ──────────────────────────────────────────── */
 html, body, #root {
   max-width: 100vw;
   overflow-x: hidden;
@@ -11,25 +38,145 @@ html, body, #root {
 @layer base {
   body {
     @apply antialiased select-none sm:select-text;
+    font-family: var(--font-sans);
+    background-color: var(--bg-main);
+    color: var(--color-text);
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
-/* Custom Scrollbar */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* ─── Typography Utilities ─────────────────────────────────── */
+.font-serif { font-family: var(--font-serif) !important; }
+.font-sans  { font-family: var(--font-sans)  !important; }
+
+/* ─── Card Utility ────────────────────────────────────────── */
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
 }
 
-::-webkit-scrollbar-track {
-  background: transparent;
+/* ─── Button Base ─────────────────────────────────────────── */
+.btn-primary {
+  background: var(--color-primary);
+  color: #ffffff;
+  border-radius: var(--radius-btn);
+  font-family: var(--font-sans);
+  font-weight: 700;
+  transition: opacity 0.15s, transform 0.1s;
 }
+.btn-primary:hover  { opacity: 0.85; }
+.btn-primary:active { transform: scale(0.97); }
 
+.btn-secondary {
+  background: #ffffff;
+  color: var(--color-primary);
+  border: 1.5px solid var(--color-gold-muted);
+  border-radius: var(--radius-btn);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  transition: background 0.15s, transform 0.1s;
+}
+.btn-secondary:hover  { background: var(--color-gold-light); }
+.btn-secondary:active { transform: scale(0.97); }
+
+/* ─── Input Utility ───────────────────────────────────────── */
+.input-field {
+  background: var(--bg-subtle);
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-input);
+  font-family: var(--font-sans);
+  color: var(--color-text);
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.input-field:focus {
+  outline: none;
+  border-color: var(--color-gold-muted);
+  box-shadow: 0 0 0 3px rgba(201,168,76,0.15);
+}
+.input-field::placeholder { color: var(--color-text-muted); }
+
+/* ─── Amount Display ─────────────────────────────────────── */
+.amount-positive { color: var(--color-gold); }
+.amount-negative { color: var(--color-expense); }
+
+/* ─── Custom Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: rgba(156, 163, 175, 0.4);
+  background: rgba(184,134,11,0.25);
   border-radius: 9999px;
 }
+::-webkit-scrollbar-thumb:hover { background: rgba(184,134,11,0.45); }
 
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(156, 163, 175, 0.7);
+/* ─── Animations ──────────────────────────────────────────── */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
 }
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60%  { transform: translateX(-6px); }
+  40%, 80%  { transform: translateX(6px); }
+}
+.animate-fadeup { animation: fadeUp 0.3s ease-out both; }
+.animate-shake  { animation: shake 0.4s ease-in-out; }
+
+/* ─── Gold shimmer for balance ────────────────────────────── */
+.balance-display {
+  font-family: var(--font-serif);
+  letter-spacing: -0.02em;
+}
+
+/* ─── Section divider ─────────────────────────────────────── */
+.section-label {
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-text-secondary);
+}
+
+/* ─── Transaction avatar ──────────────────────────────────── */
+.tx-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.tx-avatar-donation { background: var(--color-gold-light); color: var(--color-gold); }
+.tx-avatar-expense  { background: var(--color-expense-light); color: var(--color-expense); }
+.tx-avatar-gray     { background: #F0F0F0; color: #888; }
+
+/* ─── Progress bar ────────────────────────────────────────── */
+.progress-bar-track {
+  height: 4px;
+  background: var(--color-border);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-bar-fill {
+  height: 100%;
+  border-radius: 999px;
+  background: var(--color-gold-muted);
+  transition: width 0.6s ease;
+}
+
+/* ─── Allocation row ──────────────────────────────────────── */
+.allocation-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+.allocation-row:last-child { border-bottom: none; }

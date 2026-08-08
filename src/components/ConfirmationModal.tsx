@@ -38,7 +38,6 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
 
   const handleConfirmAction = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
-
     if (pin.trim() === '2020') {
       setPinError(false);
       onConfirm();
@@ -50,86 +49,110 @@ export const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     }
   };
 
+  const accentColor = isDanger ? 'var(--color-expense)' : 'var(--color-gold)';
+  const accentBg = isDanger ? 'var(--color-expense-light)' : 'var(--color-gold-light)';
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-150">
-      <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-sm w-full p-5 sm:p-6 border border-slate-200 dark:border-slate-800 shadow-2xl relative">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      style={{ backgroundColor: 'rgba(0,0,0,0.50)', backdropFilter: 'blur(4px)' }}
+    >
+      <div
+        className="w-full max-w-sm rounded-3xl p-5 relative"
+        style={{
+          backgroundColor: 'var(--bg-card)',
+          border: '1px solid var(--color-border)',
+          boxShadow: 'var(--shadow-modal)',
+        }}
+      >
+        {/* Close */}
         <button
           onClick={onClose}
-          className="absolute top-4 right-4 p-1.5 rounded-xl text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+          className="absolute top-4 right-4 w-7 h-7 rounded-full flex items-center justify-center transition-all"
+          style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)' }}
         >
-          <X className="w-5 h-5" />
+          <X className="w-4 h-4" />
         </button>
 
+        {/* Icon + Title */}
         <div className="flex items-center gap-3 mb-3">
           <div
-            className={`p-3 rounded-2xl ${
-              isDanger
-                ? 'bg-rose-100 text-rose-600 dark:bg-rose-950 dark:text-rose-300'
-                : 'bg-amber-100 text-amber-600 dark:bg-amber-950 dark:text-amber-300'
-            }`}
+            className="w-10 h-10 rounded-2xl flex items-center justify-center shrink-0"
+            style={{ backgroundColor: accentBg, color: accentColor }}
           >
-            <AlertTriangle className="w-6 h-6" />
+            <AlertTriangle className="w-5 h-5" />
           </div>
-
-          <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-snug">
+          <h3
+            className="text-base font-bold leading-snug pr-6"
+            style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+          >
             {title}
           </h3>
         </div>
 
-        <p className="text-xs text-slate-600 dark:text-slate-300 mb-4 leading-relaxed">
+        <p className="text-xs leading-relaxed mb-4" style={{ color: 'var(--color-text-secondary)' }}>
           {message}
         </p>
 
-        {/* Security Password Box */}
-        <form onSubmit={handleConfirmAction} className="mb-5 space-y-2">
-          <label className="block text-[11px] font-bold text-slate-700 dark:text-slate-300 flex items-center gap-1">
-            <Lock className={`w-3 h-3 ${isDanger ? 'text-rose-500' : 'text-amber-500'}`} />
-            <span>{isDanger ? 'Enter Delete Password :' : 'Enter Edit Password :'}</span>
+        {/* PIN Entry */}
+        <form onSubmit={handleConfirmAction} className="mb-4 space-y-2">
+          <label
+            className="flex items-center gap-1 text-[10px] font-bold uppercase tracking-wide"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            <Lock className="w-3 h-3" style={{ color: accentColor }} />
+            {isDanger ? 'Enter Delete Password' : 'Enter Edit Password'}
           </label>
-          <div className="relative">
-            <input
-              ref={pinInputRef}
-              type="password"
-              maxLength={6}
-              value={pin}
-              onChange={(e) => {
-                setPin(e.target.value);
-                if (pinError) setPinError(false);
-              }}
-              placeholder="Enter PIN "
-              className={`w-full px-3.5 py-2.5 rounded-xl border text-sm font-black text-center tracking-widest focus:outline-none transition-all ${
-                pinError
-                  ? 'border-rose-500 bg-rose-50 dark:bg-rose-950/40 text-rose-600 focus:ring-2 focus:ring-rose-500'
-                  : 'border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-slate-900 dark:text-slate-100 focus:ring-2 focus:ring-amber-500'
-              }`}
-            />
-          </div>
+          <input
+            ref={pinInputRef}
+            type="password"
+            maxLength={6}
+            value={pin}
+            onChange={(e) => {
+              setPin(e.target.value);
+              if (pinError) setPinError(false);
+            }}
+            placeholder="Enter PIN"
+            className="w-full text-sm font-bold text-center tracking-widest"
+            style={{
+              padding: '12px 14px',
+              borderRadius: '12px',
+              border: `1.5px solid ${pinError ? 'var(--color-expense)' : 'var(--color-border)'}`,
+              backgroundColor: pinError ? 'var(--color-expense-light)' : 'var(--bg-subtle)',
+              color: pinError ? 'var(--color-expense)' : 'var(--color-text)',
+              outline: 'none',
+              fontFamily: 'var(--font-sans)',
+            }}
+          />
           {pinError && (
-            <p className="text-[11px] font-bold text-rose-600 dark:text-rose-400 text-center animate-shake">
-              ⚠️ Incorrect Password! Please contact pratik.
+            <p className="text-[11px] font-bold text-center animate-shake" style={{ color: 'var(--color-expense)' }}>
+              ⚠️ Incorrect Password! Contact pratik.
             </p>
           )}
         </form>
 
-        <div className="flex items-center justify-end gap-2">
+        {/* Actions */}
+        <div className="flex items-center gap-2">
           <button
             type="button"
             onClick={onClose}
-            className="px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 font-bold text-xs hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="flex-1 py-2.5 rounded-2xl font-semibold text-sm transition-all"
+            style={{
+              backgroundColor: 'var(--bg-subtle)',
+              color: 'var(--color-text-secondary)',
+              border: '1px solid var(--color-border)',
+            }}
           >
             Cancel
           </button>
           <button
             type="button"
             onClick={handleConfirmAction}
-            className={`px-4 py-2.5 rounded-xl font-extrabold text-xs text-white shadow-xs transition-all active:scale-95 flex items-center gap-1.5 ${
-              isDanger
-                ? 'bg-rose-600 hover:bg-rose-700'
-                : 'bg-amber-600 hover:bg-amber-700'
-            }`}
+            className="flex-1 py-2.5 rounded-2xl font-bold text-sm text-white transition-all active:scale-95 flex items-center justify-center gap-1.5"
+            style={{ backgroundColor: isDanger ? 'var(--color-expense)' : 'var(--color-primary)' }}
           >
             <KeyRound className="w-3.5 h-3.5" />
-            <span>{confirmLabel}</span>
+            {confirmLabel}
           </button>
         </div>
       </div>

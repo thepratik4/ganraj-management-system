@@ -4,9 +4,9 @@ import {
   Save,
   Database,
   CheckCircle2,
-  AlertCircle,
   FileSpreadsheet,
   Zap,
+  CloudOff,
 } from 'lucide-react';
 import { MandalSettings, Donation, Expense } from '../types';
 import { StorageService } from '../utils/storage';
@@ -53,23 +53,14 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       receipt_footer: receiptFooter.trim(),
       ganeshotsav_year: year.trim() || '2026',
     };
-
     onSaveSettings(updated);
     setSavedSuccess(true);
     setTimeout(() => setSavedSuccess(false), 2500);
   };
 
   const handleExportJSON = () => {
-    const data = {
-      settings,
-      donations,
-      expenses,
-      exported_at: new Date().toISOString(),
-    };
-
-    const blob = new Blob([JSON.stringify(data, null, 2)], {
-      type: 'application/json',
-    });
+    const data = { settings, donations, expenses, exported_at: new Date().toISOString() };
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
@@ -91,20 +82,66 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
     document.body.removeChild(link);
   };
 
+  const inputStyle: React.CSSProperties = {
+    width: '100%',
+    padding: '12px 14px',
+    borderRadius: '12px',
+    border: '1.5px solid var(--color-border)',
+    backgroundColor: 'var(--bg-subtle)',
+    color: 'var(--color-text)',
+    fontFamily: 'var(--font-sans)',
+    fontSize: '14px',
+    outline: 'none',
+  };
+
+  const labelStyle: React.CSSProperties = {
+    display: 'block',
+    fontSize: '10px',
+    fontWeight: 700,
+    letterSpacing: '0.08em',
+    textTransform: 'uppercase' as const,
+    color: 'var(--color-text-secondary)',
+    marginBottom: '6px',
+    fontFamily: 'var(--font-sans)',
+  };
+
+  const cardStyle: React.CSSProperties = {
+    backgroundColor: 'var(--bg-card)',
+    border: '1px solid var(--color-border)',
+    borderRadius: '20px',
+    boxShadow: 'var(--shadow-card)',
+    padding: '20px',
+  };
+
   return (
-    <div className="space-y-5 pb-20 max-w-2xl mx-auto">
-      {/* Settings Form */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800 mb-4">
-          <div className="p-2.5 rounded-2xl bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300">
-            <SettingsIcon className="w-5 h-5" />
+    <div className="space-y-4 pb-24 max-w-2xl mx-auto animate-fadeup">
+
+      {/* ── Page Heading ──────────────────────────────── */}
+      <div>
+        <h2
+          className="text-3xl font-bold tracking-tight"
+          style={{ fontFamily: 'var(--font-serif)', color: 'var(--color-text)' }}
+        >
+          Settings
+        </h2>
+        <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
+          Manage mandal details, branding and data exports
+        </p>
+      </div>
+
+      {/* ── Settings Form Card ────────────────────────── */}
+      <div style={cardStyle}>
+        <div className="flex items-center gap-3 mb-5" style={{ paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: 'var(--color-gold-light)', color: 'var(--color-gold)' }}
+          >
+            <SettingsIcon className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h2 className="text-lg font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-              Mandal & Receipt Settings
-            </h2>
-            <p className="text-xs text-slate-500">
-              Customize committee name, branding, footer message, and WhatsApp contact
+            <h3 className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Mandal & Receipt Settings</h3>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>
+              Name, branding, footer & WhatsApp
             </p>
           </div>
         </div>
@@ -112,75 +149,71 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Mandal Name */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Mandal Name
-            </label>
+            <label style={labelStyle}>Mandal Name</label>
             <input
               type="text"
               value={mandalName}
               onChange={(e) => setMandalName(e.target.value)}
               placeholder="Ganraj Mitra Mandal"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm font-bold focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              style={{ ...inputStyle, fontWeight: 600 }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>
 
-          {/* Ganeshotsav Year & WhatsApp Number */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Year & WhatsApp */}
+          <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Ganeshotsav Year
-              </label>
+              <label style={labelStyle}>Ganeshotsav Year</label>
               <input
                 type="text"
                 value={year}
                 onChange={(e) => setYear(e.target.value)}
                 placeholder="2026"
-                className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                style={inputStyle}
+                onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
               />
             </div>
-
             <div>
-              <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-                Committee WhatsApp Number
-              </label>
+              <label style={labelStyle}>WhatsApp Number</label>
               <div className="relative">
-                <span className="absolute left-3 top-2.5 text-xs text-slate-400 font-medium">
-                  +91
-                </span>
+                <span className="absolute left-3 top-3.5 text-xs font-medium" style={{ color: 'var(--color-text-secondary)' }}>+91</span>
                 <input
                   type="tel"
                   maxLength={10}
                   value={whatsappNumber}
                   onChange={(e) => setWhatsappNumber(e.target.value)}
                   placeholder="9876543210"
-                  className="w-full pl-10 pr-3 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-sm focus:ring-2 focus:ring-amber-500 focus:outline-none"
+                  style={{ ...inputStyle, paddingLeft: '40px' }}
+                  onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+                  onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
                 />
               </div>
             </div>
           </div>
 
-          {/* Mandal Logo URL / Presets */}
+          {/* Logo URL */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Mandal Logo URL
-            </label>
+            <label style={labelStyle}>Mandal Logo URL</label>
             <input
               type="text"
               value={logo}
               onChange={(e) => setLogo(e.target.value)}
               placeholder="https://..."
-              className="w-full px-3.5 py-2 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              style={inputStyle}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
-
-            {/* Presets */}
-            <div className="flex items-center gap-2 mt-2">
-              <span className="text-[10px] text-slate-400">Presets:</span>
+            <div className="flex items-center gap-2 mt-1.5">
+              <span className="text-[10px]" style={{ color: 'var(--color-text-muted)' }}>Presets:</span>
               {LOGO_PRESETS.map((preset, idx) => (
                 <button
                   key={idx}
                   type="button"
                   onClick={() => setLogo(preset.url)}
-                  className="text-[10px] font-bold text-amber-600 dark:text-amber-400 hover:underline"
+                  className="text-[10px] font-bold hover:underline"
+                  style={{ color: 'var(--color-gold)' }}
                 >
                   {preset.name}
                 </button>
@@ -188,108 +221,126 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
             </div>
           </div>
 
-          {/* Receipt Footer Message */}
+          {/* Receipt Footer */}
           <div>
-            <label className="block text-xs font-bold text-slate-700 dark:text-slate-300 mb-1">
-              Receipt Footer Note
-            </label>
+            <label style={labelStyle}>Receipt Footer Note</label>
             <textarea
               rows={2}
               value={receiptFooter}
               onChange={(e) => setReceiptFooter(e.target.value)}
               placeholder="Thank you for your generous contribution. Ganpati Bappa Morya!"
-              className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 text-xs focus:ring-2 focus:ring-amber-500 focus:outline-none"
+              style={{ ...inputStyle, resize: 'none' }}
+              onFocus={e => { e.target.style.borderColor = 'var(--color-gold-muted)'; }}
+              onBlur={e => { e.target.style.borderColor = 'var(--color-border)'; }}
             />
           </div>
 
-          <div className="pt-2 flex items-center justify-between">
+          {/* Save Actions */}
+          <div className="flex items-center justify-between pt-2">
             {savedSuccess ? (
-              <p className="text-xs text-emerald-600 dark:text-emerald-400 font-bold flex items-center gap-1">
+              <p className="text-xs font-bold flex items-center gap-1" style={{ color: '#1a7a3f' }}>
                 <CheckCircle2 className="w-4 h-4" />
-                Settings saved successfully!
+                Settings saved!
               </p>
-            ) : (
-              <span></span>
-            )}
-
+            ) : <span />}
             <button
               type="submit"
-              className="px-5 py-2.5 rounded-xl bg-amber-600 hover:bg-amber-700 text-white font-extrabold text-xs shadow-md active:scale-95 transition-all flex items-center gap-1.5"
+              className="flex items-center gap-2 py-2.5 px-5 rounded-2xl font-bold text-sm transition-all active:scale-95"
+              style={{ backgroundColor: 'var(--color-primary)', color: '#fff' }}
             >
               <Save className="w-4 h-4" />
-              <span>Save Settings</span>
+              Save Settings
             </button>
           </div>
         </form>
       </div>
 
-      {/* Supabase Realtime Database Sync Section */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-3">
-        <div className="flex items-center gap-2.5">
-          <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
-            <Zap className="w-5 h-5 text-emerald-600" />
+      {/* ── Supabase Status Card ──────────────────────── */}
+      <div style={cardStyle}>
+        <div className="flex items-center gap-3">
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{
+              backgroundColor: isSupabaseConfigured ? '#EDFAF1' : 'var(--color-gold-light)',
+              color: isSupabaseConfigured ? '#1a7a3f' : 'var(--color-gold)',
+            }}
+          >
+            {isSupabaseConfigured ? <Zap className="w-4.5 h-4.5" /> : <CloudOff className="w-4.5 h-4.5" />}
           </div>
-          <div>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight flex items-center gap-2">
-              <span>Supabase Realtime Cloud Sync</span>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h3 className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>
+                Supabase Cloud Sync
+              </h3>
               <span
-                className={`text-[10px] font-black px-2.5 py-0.5 rounded-full border ${
-                  isSupabaseConfigured
-                    ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300'
-                    : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300'
-                }`}
+                className="text-[10px] font-bold px-2 py-0.5 rounded-full"
+                style={{
+                  backgroundColor: isSupabaseConfigured ? '#EDFAF1' : 'var(--color-gold-light)',
+                  border: `1px solid ${isSupabaseConfigured ? '#A8E6C1' : '#D4B44A'}`,
+                  color: isSupabaseConfigured ? '#1a7a3f' : 'var(--color-gold)',
+                }}
               >
                 {isSupabaseConfigured ? 'CONNECTED' : 'NOT CONNECTED'}
               </span>
-            </h3>
-            <p className="text-xs text-slate-500">
+            </div>
+            <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-secondary)' }}>
               {isSupabaseConfigured
-                ? 'Supabase Direct Cloud Database Active — Single Source of Truth for all devices'
-                : 'Connection Required — Please configure VITE_SUPABASE_URL in .env.local'}
+                ? 'Realtime cloud database active — all devices synced'
+                : 'Configure VITE_SUPABASE_URL in .env.local'}
             </p>
           </div>
         </div>
       </div>
 
-      {/* Database Backup & Maintenance Section */}
-      <div className="bg-white dark:bg-slate-900 p-5 rounded-3xl border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
-        <div className="flex items-center gap-2.5 pb-3 border-b border-slate-100 dark:border-slate-800">
-          <div className="p-2.5 rounded-2xl bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300">
-            <Database className="w-5 h-5" />
+      {/* ── Backup & Export Card ──────────────────────── */}
+      <div style={cardStyle}>
+        <div className="flex items-center gap-3 mb-4" style={{ paddingBottom: '16px', borderBottom: '1px solid var(--color-border)' }}>
+          <div
+            className="w-9 h-9 rounded-xl flex items-center justify-center"
+            style={{ backgroundColor: 'var(--bg-subtle)', color: 'var(--color-text-secondary)' }}
+          >
+            <Database className="w-4.5 h-4.5" />
           </div>
           <div>
-            <h3 className="text-base font-extrabold text-slate-900 dark:text-slate-100 leading-tight">
-              Database Backup & Export
-            </h3>
-            <p className="text-xs text-slate-500">
-              Download CSV Excel report or export full JSON database backup
-            </p>
+            <h3 className="text-sm font-bold" style={{ color: 'var(--color-text)' }}>Database Backup & Export</h3>
+            <p className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Download CSV or full JSON backup</p>
           </div>
         </div>
 
-        {/* Action Buttons Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Backup CSV */}
           <button
             onClick={handleExportCSV}
-            className="p-3 rounded-2xl bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800/60 text-emerald-800 dark:text-emerald-200 text-xs font-bold hover:bg-emerald-100 dark:hover:bg-emerald-950/80 transition-all flex items-center gap-2.5"
+            className="flex items-center gap-3 p-4 rounded-2xl transition-all active:scale-95"
+            style={{
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-gold-muted)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
           >
-            <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+            <FileSpreadsheet className="w-5 h-5" style={{ color: 'var(--color-gold)' }} />
             <div className="text-left">
-              <span className="block font-black">Export CSV / Excel</span>
-              <span className="text-[10px] opacity-80">Full donation & expense report</span>
+              <span className="block text-sm font-bold">Export CSV / Excel</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Full donation & expense report</span>
             </div>
           </button>
 
-          {/* Backup JSON */}
           <button
             onClick={handleExportJSON}
-            className="p-3 rounded-2xl bg-amber-50 dark:bg-amber-950/40 border border-amber-200 dark:border-amber-800/60 text-amber-800 dark:text-amber-200 text-xs font-bold hover:bg-amber-100 dark:hover:bg-amber-950/80 transition-all flex items-center gap-2.5"
+            className="flex items-center gap-3 p-4 rounded-2xl transition-all active:scale-95"
+            style={{
+              backgroundColor: 'var(--bg-subtle)',
+              border: '1px solid var(--color-border)',
+              color: 'var(--color-text)',
+            }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = 'var(--color-gold-muted)')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--color-border)')}
           >
-            <Database className="w-5 h-5 text-amber-600" />
+            <Database className="w-5 h-5" style={{ color: 'var(--color-text-secondary)' }} />
             <div className="text-left">
-              <span className="block font-black">Backup Database (JSON)</span>
-              <span className="text-[10px] opacity-80">Complete system backup file</span>
+              <span className="block text-sm font-bold">Backup JSON</span>
+              <span className="text-xs" style={{ color: 'var(--color-text-secondary)' }}>Complete system backup file</span>
             </div>
           </button>
         </div>
